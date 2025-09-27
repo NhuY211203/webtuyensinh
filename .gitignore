@@ -1,0 +1,12 @@
+# Thư mục node_modules rất nặng, không commit
+node_modules/
+
+# File build của frontend (nếu có)
+dist/
+
+# File môi trường chứa secret
+.env
+
+# File hệ thống không cần thiết
+.DS_Store
+Thumbs.db
