@@ -1,7 +1,30 @@
 
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const [stats, setStats] = useState({ universities: 0, majors: 0, years: 0 });
+
+  useEffect(() => {
+    let isMounted = true;
+    async function load() {
+      try {
+        const res = await fetch("/api/stats").catch(() => 
+          fetch("http://127.0.0.1:8000/api/stats")
+        );
+        if (!isMounted) return;
+        if (!res.ok) throw new Error("Failed to fetch stats");
+        const data = await res.json();
+        setStats({
+          universities: data.universities ?? 0,
+          majors: data.majors ?? 0,
+          years: data.years ?? 0,
+        });
+      } catch {}
+    }
+    load();
+    return () => { isMounted = false; };
+  }, []);
   return (
     <div>
       <section className="bg-primary-500/95 text-white">
@@ -21,16 +44,18 @@ export default function Home() {
           <div className="card p-6 bg-white/95 text-gray-800">
             <h3 className="font-semibold text-lg">Số liệu cập nhật</h3>
             <div className="grid grid-cols-3 gap-4 mt-4">
-              {[
-                { k: "Trường", v: "50+" },
-                { k: "Ngành", v: "2.000+" },
-                { k: "Năm dữ liệu", v: "5 năm" }
-              ].map((it) => (
-                <div key={it.k} className="rounded-xl bg-gray-50 p-4 text-center">
-                  <div className="text-2xl font-bold text-primary-600">{it.v}</div>
-                  <div className="text-sm text-gray-500">{it.k}</div>
-                </div>
-              ))}
+              <div className="rounded-xl bg-gray-50 p-4 text-center">
+                <div className="text-2xl font-bold text-primary-600">{stats.universities}</div>
+                <div className="text-sm text-gray-500">Trường</div>
+              </div>
+              <div className="rounded-xl bg-gray-50 p-4 text-center">
+                <div className="text-2xl font-bold text-primary-600">{stats.majors}</div>
+                <div className="text-sm text-gray-500">Ngành</div>
+              </div>
+              <div className="rounded-xl bg-gray-50 p-4 text-center">
+                <div className="text-2xl font-bold text-primary-600">{stats.years}</div>
+                <div className="text-sm text-gray-500">Năm dữ liệu</div>
+              </div>
             </div>
             <p className="mt-4 text-sm text-gray-600">Nguồn: Website các trường & Bộ GD&ĐT.</p>
           </div>

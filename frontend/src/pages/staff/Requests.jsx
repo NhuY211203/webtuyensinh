@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 function Modal({ open, onClose, children }) {
   if (!open) return null;
@@ -18,15 +18,48 @@ function Modal({ open, onClose, children }) {
 }
 
 export default function StaffRequests() {
-  const [rows, setRows] = useState([
-    { id: "REQ-001", user: "Trần N.", topic: "Chọn ngành CNTT", preferred: "Chiều nay", status: "Chờ xử lý" },
-    { id: "REQ-002", user: "Lê Q.", topic: "Học bổng", preferred: "Sáng mai", status: "Đã phân công" }
-  ]);
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [assignOpen, setAssignOpen] = useState(false);
   const [resOpen, setResOpen] = useState(false);
   const [current, setCurrent] = useState(null);
   const [expert, setExpert] = useState("Chuyên gia A");
   const [slot, setSlot] = useState("10:00 22/06");
+
+  // Load requests from API (mock data for now)
+  useEffect(() => {
+    let isMounted = true;
+    
+    async function loadRequests() {
+      try {
+        setLoading(true);
+        // Mock data - in real app, this would be an API call
+        const mockRequests = [
+          { id: "REQ-001", user: "Trần N.", topic: "Chọn ngành CNTT", preferred: "Chiều nay", status: "Chờ xử lý" },
+          { id: "REQ-002", user: "Lê Q.", topic: "Học bổng", preferred: "Sáng mai", status: "Đã phân công" }
+        ];
+        
+        if (!isMounted) return;
+        
+        // Simulate API delay
+        setTimeout(() => {
+          if (isMounted) {
+            setRows(mockRequests);
+            setLoading(false);
+          }
+        }, 1000);
+      } catch (err) {
+        if (!isMounted) return;
+        console.error("Error loading requests:", err);
+        setError("Lỗi kết nối");
+        setLoading(false);
+      }
+    }
+    
+    loadRequests();
+    return () => { isMounted = false; };
+  }, []);
 
   const openAssign = (r) => { setCurrent(r); setAssignOpen(true); };
   const openReschedule = (r) => { setCurrent(r); setResOpen(true); };
@@ -44,45 +77,78 @@ export default function StaffRequests() {
   return (
     <div>
       <h1 className="text-2xl font-bold mb-4">Yêu cầu tư vấn</h1>
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-gray-600">
-            <tr>
-              <th className="p-3 text-left">Mã</th>
-              <th className="p-3 text-left">Người yêu cầu</th>
-              <th className="p-3 text-left">Chủ đề</th>
-              <th className="p-3 text-left">Ưu tiên</th>
-              <th className="p-3 text-center">Trạng thái</th>
-              <th className="p-3 text-center">Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(r => (
-              <tr key={r.id} className="border-t">
-                <td className="p-3">{r.id}</td>
-                <td className="p-3">{r.user}</td>
-                <td className="p-3">{r.topic}</td>
-                <td className="p-3">{r.preferred}</td>
-                <td className="p-3 text-center">{r.status}</td>
-                <td className="p-3 text-center space-x-2">
-                  <button
-                    onClick={() => openAssign(r)}
-                    className="px-3 py-1 rounded-full bg-teal-50 text-teal-700 hover:bg-teal-100"
-                  >
-                    Phân công
-                  </button>
-                  <button
-                    onClick={() => openReschedule(r)}
-                    className="px-3 py-1 rounded-full bg-gray-100 hover:bg-gray-200"
-                  >
-                    Đổi lịch
-                  </button>
-                </td>
-              </tr>
+      
+      {loading ? (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+          <div className="animate-pulse space-y-4">
+            {[1,2,3].map(i => (
+              <div key={i} className="flex space-x-4">
+                <div className="h-4 bg-gray-200 rounded w-1/6"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/6"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/6"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/6"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/6"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/6"></div>
+              </div>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
+        </div>
+      ) : error ? (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          {error}
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 text-gray-600">
+              <tr>
+                <th className="p-3 text-left">Mã</th>
+                <th className="p-3 text-left">Người yêu cầu</th>
+                <th className="p-3 text-left">Chủ đề</th>
+                <th className="p-3 text-left">Ưu tiên</th>
+                <th className="p-3 text-center">Trạng thái</th>
+                <th className="p-3 text-center">Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(r => (
+                <tr key={r.id} className="border-t">
+                  <td className="p-3">{r.id}</td>
+                  <td className="p-3">{r.user}</td>
+                  <td className="p-3">{r.topic}</td>
+                  <td className="p-3">{r.preferred}</td>
+                  <td className="p-3 text-center">
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      r.status === 'Đã phân công' 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {r.status}
+                    </span>
+                  </td>
+                  <td className="p-3 text-center space-x-2">
+                    <button
+                      onClick={() => openAssign(r)}
+                      className="px-3 py-1 rounded-full bg-teal-50 text-teal-700 hover:bg-teal-100"
+                    >
+                      Phân công
+                    </button>
+                    <button
+                      onClick={() => openReschedule(r)}
+                      className="px-3 py-1 rounded-full bg-gray-100 hover:bg-gray-200"
+                    >
+                      Đổi lịch
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {!rows.length && (
+                <tr><td colSpan="6" className="p-6 text-center text-gray-500">Không có yêu cầu nào.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Modal phân công */}
       <Modal open={assignOpen} onClose={() => setAssignOpen(false)}>

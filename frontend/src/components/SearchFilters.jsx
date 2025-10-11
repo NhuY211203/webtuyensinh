@@ -15,19 +15,19 @@ export default function SearchFilters({ filters, setFilters, years, combos, meth
         />
         <Select label="Trường" value={filters.school} onChange={e => set("school", e.target.value)}>
           <option value="">Tất cả</option>
-          {schools.map(s => <option key={s} value={s}>{s}</option>)}
+          {schools.map(s => <option key={s.value || s} value={s.value || s}>{s.label || s}</option>)}
         </Select>
         <Select label="Phương thức" value={filters.method} onChange={e => set("method", e.target.value)}>
           <option value="">Tất cả</option>
-          {methods.map(m => <option key={m} value={m}>{m}</option>)}
+          {methods.map(m => <option key={m.value || m} value={m.value || m}>{m.label || m}</option>)}
         </Select>
         <Select label="Tổ hợp" value={filters.combo} onChange={e => set("combo", e.target.value)}>
           <option value="">Tất cả</option>
-          {combos.map(c => <option key={c} value={c}>{c}</option>)}
+          {combos.map(c => <option key={c.value || c} value={c.value || c}>{c.label || c}</option>)}
         </Select>
         <Select label="Năm" value={filters.year} onChange={e => set("year", e.target.value)}>
           <option value="">Tất cả</option>
-          {years.map(y => <option key={y} value={y}>{y}</option>)}
+          {years.map(y => <option key={y.value || y} value={y.value || y}>{y.label || y}</option>)}
         </Select>
         <Select label="Khu vực" value={filters.region} onChange={e => set("region", e.target.value)}>
           <option value="">Tất cả</option>

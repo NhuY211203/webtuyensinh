@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
+import Topbar from "../components/Topbar.jsx";
 
 export default function ManagerLayout() {
   const link =
@@ -21,27 +22,8 @@ export default function ManagerLayout() {
       </aside>
 
       {/* MAIN */}
-      <div className="flex-1">
-        {/* Topbar */}
-        <div className="h-16 border-b flex items-center justify-between px-6 bg-white/80 backdrop-blur">
-          <div className="text-black font-medium">Xin chào, Nguyễn Quốc Bảo</div>
-          <div className="flex items-center gap-3">
-            <input
-              placeholder="Tìm nhanh (user, log, báo cáo...)"
-              className="hidden md:block rounded-xl border border-gray-200 px-3 py-2 focus:ring-2 focus:ring-teal-500"
-            />
-            <button className="relative h-9 w-9 rounded-full bg-teal-50 text-teal-700 hover:bg-teal-100">
-              🔔
-              <span className="absolute -top-1 -right-1 text-[10px] bg-red-500 text-white rounded-full px-1">3</span>
-            </button>
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-teal-600 text-white font-semibold">N</span>
-            <div className="text-sm">
-              <div className="font-semibold">Nguyễn Quốc Bảo</div>
-              <div className="text-gray-500">bao@example.com</div>
-            </div>
-          </div>
-        </div>
-
+      <div className="flex-1 flex flex-col">
+        <Topbar />
         <main className="p-6">
           <Outlet />
         </main>

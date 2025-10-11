@@ -1,6 +1,7 @@
 import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar.jsx";
 import Footer from "./components/Footer.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
@@ -56,8 +57,12 @@ export default function App() {
           <Route path="/search" element={<Search />} />
           <Route path="/admin/programs" element={<ManagePrograms />} />
 
-          {/* User Dashboard */}
-          <Route path="/dashboard" element={<DashboardLayout />}>
+          {/* User Dashboard - Chỉ dành cho Thành viên */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute allowedRoles={['Thành viên']}>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }>
             <Route index element={<Overview />} />
             <Route path="trends" element={<Trends />} />
             <Route path="application" element={<ApplicationForm />} />
@@ -68,8 +73,12 @@ export default function App() {
             <Route path="certificates" element={<Certificates />} />
           </Route>
 
-          {/* Consultant */}
-          <Route path="/consultant" element={<ConsultantLayout />}>
+          {/* Consultant - Chỉ dành cho Tư vấn viên */}
+          <Route path="/consultant" element={
+            <ProtectedRoute allowedRoles={['Tư vấn viên']}>
+              <ConsultantLayout />
+            </ProtectedRoute>
+          }>
             <Route index element={<ConsultantOverview />} />
             <Route path="schedule" element={<ConsultantSchedule />} />
             <Route path="meetings" element={<ConsultantMeetings />} />
@@ -77,8 +86,12 @@ export default function App() {
             <Route path="candidates" element={<ConsultantCandidates />} />
           </Route>
 
-          {/* Staff */}
-          <Route path="/staff" element={<StaffLayout />}>
+          {/* Staff - Chỉ dành cho Người phụ trách */}
+          <Route path="/staff" element={
+            <ProtectedRoute allowedRoles={['Người phụ trách']}>
+              <StaffLayout />
+            </ProtectedRoute>
+          }>
             <Route index element={<StaffRequests />} />
             <Route path="assign" element={<StaffAssign />} />
             <Route path="calendar" element={<StaffCalendar />} />
@@ -86,8 +99,12 @@ export default function App() {
             <Route path="consultants" element={<StaffExperts />} />
           </Route>
 
-          {/* Manager */}
-          <Route path="/manager" element={<ManagerLayout />}>
+          {/* Manager - Chỉ dành cho Admin */}
+          <Route path="/manager" element={
+            <ProtectedRoute allowedRoles={['Admin']}>
+              <ManagerLayout />
+            </ProtectedRoute>
+          }>
             <Route index element={<ManagerOverview />} />
             <Route path="users" element={<ManagerUsers />} />
             <Route path="logs" element={<ManagerLogs />} />
