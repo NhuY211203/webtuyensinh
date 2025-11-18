@@ -41,12 +41,16 @@ export default function Search() {
           setCombos(combosData.data.map(c => ({ value: c.ma_to_hop, label: `${c.ma_to_hop} - ${c.mo_ta}` })));
         }
         
-        // Mock methods and years for now
-        setMethods([
-          { value: "Thi THPT", label: "Thi THPT" },
-          { value: "Học bạ", label: "Học bạ" },
-          { value: "ĐGNL", label: "Đánh giá năng lực" }
-        ]);
+        // Load methods from API
+        try {
+          const methodsRes = await fetch("/api/phuong-thuc?perPage=100").catch(() =>
+            fetch("http://127.0.0.1:8000/api/phuong-thuc?perPage=100")
+          );
+          if (methodsRes?.ok) {
+            const methodsData = await methodsRes.json();
+            setMethods((methodsData.data || []).map(m => ({ value: m.idxettuyen, label: m.tenptxt })));
+          }
+        } catch {}
         
         setYears([2024, 2023, 2022, 2021, 2020].map(y => ({ value: y, label: y })));
       } catch (error) {
@@ -70,6 +74,7 @@ export default function Search() {
         if (filters.school) params.append('idtruong', filters.school);
         if (filters.combo) params.append('tohop', filters.combo);
         if (filters.year) params.append('nam', filters.year);
+        if (filters.method) params.append('idxettuyen', filters.method);
         params.append('perPage', '20');
         params.append('page', filters.page);
         

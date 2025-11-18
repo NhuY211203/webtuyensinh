@@ -46,24 +46,29 @@ export default function Login() {
         // Lưu thông tin user vào localStorage
         localStorage.setItem('user', JSON.stringify(data.data));
         
-        // Phân quyền theo vai trò
+        // Phân quyền theo vai trò (ưu tiên id vai trò nếu có)
+        const roleId = data.data.idvaitro;
         const userRole = data.data.vaitro;
-        switch (userRole) {
-          case 'Thành viên':
-            navigate('/dashboard');
-            break;
-          case 'Tư vấn viên':
-            navigate('/consultant');
-            break;
-          case 'Người phụ trách':
-            navigate('/staff');
-            break;
-          case 'Admin':
-            navigate('/manager');
-            break;
-          default:
-            // Nếu không có vai trò phù hợp, chuyển về trang chủ
-            navigate('/');
+        if (roleId === 6) {
+          navigate('/analyst');
+        } else {
+          switch (userRole) {
+            case 'Thành viên':
+              navigate('/dashboard');
+              break;
+            case 'Tư vấn viên':
+              navigate('/consultant');
+              break;
+            case 'Người phụ trách':
+              navigate('/staff');
+              break;
+            case 'Admin':
+              navigate('/manager');
+              break;
+            default:
+              // Nếu không có vai trò phù hợp, chuyển về trang chủ
+              navigate('/');
+          }
         }
       } else {
         setError(data.message || "Email hoặc mật khẩu không đúng");

@@ -1,24 +1,32 @@
 import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar.jsx";
-import Footer from "./components/Footer.jsx";
+import Footer from "./layouts/Footer.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 import Home from "./pages/Home.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import Search from "./pages/Search.jsx";
+import News from "./pages/News.jsx";
+import HistoricScores from "./pages/dashboard/HistoricScores.jsx";
+import HistoricScoreDetail from "./pages/dashboard/HistoricScoreDetail.jsx";
+import TrendsPage from "./pages/dashboard/TrendsPage.jsx";
 import ManagePrograms from "./pages/admin/ManagePrograms.jsx";
-import EditContact from "./pages/dashboard/EditContact.jsx";
 
 import DashboardLayout from "./layouts/DashboardLayout.jsx";
 import Overview from "./pages/dashboard/Overview.jsx";
 import Trends from "./pages/dashboard/ScoreDistribution.jsx";
-import ApplicationForm from "./pages/dashboard/ApplicationForm.jsx";
-import Notifications from "./pages/dashboard/Notifications.jsx";
+import NotificationsCenter from "./pages/dashboard/NotificationsCenter.jsx";
+import Profile from "./pages/dashboard/Profile.jsx";
+import AccountSecurity from "./pages/dashboard/AccountSecurity.jsx";
+import Documents from "./pages/dashboard/Documents.jsx";
+import Wishes from "./pages/dashboard/Wishes.jsx";
+import Predictions from "./pages/dashboard/Predictions.jsx";
 import SearchQuick from "./pages/dashboard/SearchQuick.jsx";
 import Payments from "./pages/dashboard/Payments.jsx";
 import Appointments from "./pages/dashboard/Appointments.jsx";
 import Certificates from "./pages/dashboard/Certificates.jsx";
+import AdmissionInfo from "./pages/dashboard/AdmissionInfo.jsx";
 
 import ConsultantLayout from "./layouts/ConsultantLayout.jsx";
 import ConsultantOverview from "./pages/consultant/Overview.jsx";
@@ -30,7 +38,6 @@ import ConsultantCandidates from "./pages/consultant/Candidates.jsx";
 import StaffLayout from "./layouts/StaffLayout.jsx";
 import StaffRequests from "./pages/staff/Requests.jsx";
 import StaffAssign from "./pages/staff/Assign.jsx";
-import StaffCalendar from "./pages/staff/Calendar.jsx";
 import StaffNotifications from "./pages/staff/Notifications.jsx";
 import StaffExperts from "./pages/staff/Consultants.jsx";
 
@@ -43,13 +50,15 @@ import ManagerReports from "./pages/manager/Reports.jsx";
 
 import AnalystLayout from "./layouts/AnalystLayout.jsx";
 import DataManagement from "./pages/analyst/DataManagement.jsx";
-import Analysis from "./pages/analyst/Analysis.jsx";
-import ReportsAnalyst from "./pages/analyst/Report.jsx";
 import Posts from "./pages/analyst/Post.jsx";
+import UniversityManagement from "./pages/analyst/UniversityManagement.jsx";
+import MajorManagement from "./pages/analyst/MajorManagement.jsx";
+import AdmissionMajorManagement from "./pages/analyst/AdmissionMajorManagement.jsx";
+import AdmissionMethodManagement from "./pages/analyst/AdmissionMethodManagement.jsx";
 
 export default function App() {
   const location = useLocation();
-  const hideGlobalNav = ["/dashboard", "/consultant", "/staff", "/manager"].some(p =>
+  const hideGlobalNav = ["/dashboard", "/consultant", "/staff", "/manager", "/analyst"].some(p =>
     location.pathname.startsWith(p)
   );
 
@@ -58,11 +67,12 @@ export default function App() {
       {!hideGlobalNav && <Navbar />}
       <main className="flex-1">
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/search" element={<Search />} />
-          <Route path="/admin/programs" element={<ManagePrograms />} />
+                <Route path="/" element={<Home />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/search" element={<Search />} />
+                <Route path="/news" element={<News />} />
+                <Route path="/admin/programs" element={<ManagePrograms />} />
 
           {/* User Dashboard - Chỉ dành cho Thành viên */}
           <Route path="/dashboard" element={
@@ -72,13 +82,21 @@ export default function App() {
           }>
             <Route index element={<Overview />} />
             <Route path="score-distribution" element={<Trends />} />
-            <Route path="application" element={<ApplicationForm />} />
-            <Route path="edit-contact" element={<EditContact />} />
-            <Route path="notifications" element={<Notifications />} />
+            <Route path="search-trends" element={<TrendsPage />} />
+            <Route path="historic-scores" element={<HistoricScores />} />
+            <Route path="historic-scores/:id" element={<HistoricScoreDetail />} />
+            <Route path="notifications-center" element={<NotificationsCenter />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="account-security" element={<AccountSecurity />} />
+            <Route path="documents" element={<Documents />} />
+            <Route path="wishes" element={<Wishes />} />
             <Route path="search" element={<SearchQuick />} />
-            <Route path="payments" element={<Payments />} />
+            <Route path="payment-history" element={<Payments />} />
+            <Route path="predictions" element={<Predictions />} />
             <Route path="appointments" element={<Appointments />} />
             <Route path="certificates" element={<Certificates />} />
+            <Route path="admission-info" element={<AdmissionInfo />} />
+            <Route path="news" element={<News />} />
           </Route>
 
           {/* Consultant - Chỉ dành cho Tư vấn viên */}
@@ -102,9 +120,9 @@ export default function App() {
           }>
             <Route index element={<StaffRequests />} />
             <Route path="assign" element={<StaffAssign />} />
-            <Route path="calendar" element={<StaffCalendar />} />
             <Route path="notifications" element={<StaffNotifications />} />
             <Route path="consultants" element={<StaffExperts />} />
+            <Route path="experts" element={<StaffExperts />} />
           </Route>
 
           {/* Manager - Chỉ dành cho Admin */}
@@ -120,13 +138,19 @@ export default function App() {
             <Route path="reports" element={<ManagerReports />} />
           </Route>
 
-           {/* Analyst (Nhân viên phân tích dữ liệu) */}
-        <Route path="/analyst" element={<AnalystLayout />}>
-          <Route index element={<Analysis />} />
+          {/* Analyst - Chỉ dành cho Nhân viên phân tích (role id = 6) */}
+        <Route path="/analyst" element={
+            <ProtectedRoute allowedRoleIds={[6]}>
+              <AnalystLayout />
+            </ProtectedRoute>
+          }>
+          <Route index element={<DataManagement />} />
           <Route path="data" element={<DataManagement />} />
-          <Route path="analysis" element={<Analysis />} />
-          <Route path="reports" element={<ReportsAnalyst />} />
           <Route path="posts" element={<Posts />} />
+          <Route path="university" element={<UniversityManagement />} />
+          <Route path="majors" element={<MajorManagement />} />
+          <Route path="admission-majors" element={<AdmissionMajorManagement />} />
+          <Route path="admission-methods" element={<AdmissionMethodManagement />} />
         </Route>
         </Routes>
       </main>
