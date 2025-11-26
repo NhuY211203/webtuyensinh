@@ -1,6 +1,9 @@
 # Thư mục node_modules rất nặng, không commit
 node_modules/
 
+# Vendor folder rất nặng, không commit
+backend/vendor/
+
 # File build của frontend (nếu có)
 dist/
 
