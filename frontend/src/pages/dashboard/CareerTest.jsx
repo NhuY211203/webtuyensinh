@@ -129,24 +129,30 @@ export default function CareerTest() {
 
   return (
     <div className="px-4 py-8 sm:px-6 lg:px-10 space-y-8 bg-slate-50 min-h-screen">
-      <header className="space-y-3">
-        <p className="text-xs tracking-[0.3em] text-[#00BCD4] font-semibold uppercase">Định hướng ngành nghề</p>
-        <div className="space-y-2">
-          <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 leading-tight">Bài test định hướng 29 câu</h1>
-          <p className="text-slate-600 text-base max-w-3xl">
-            Hoàn thành bài test để nhận gợi ý nhóm ngành phù hợp nhất dựa trên dữ liệu tuyển sinh và mô tả ngành học.
-          </p>
-        </div>
-        <div className="mt-4 rounded-2xl bg-white p-4 shadow border border-slate-100 flex flex-col gap-2">
-          <div className="flex items-center justify-between text-sm text-slate-500">
-            <span>Tiến độ hoàn thành (29 câu)</span>
-            <span className="font-semibold text-slate-700">
-              {answeredCount}/{questions.length || 0} câu
-            </span>
+      <header className="space-y-5">
+        <div className="rounded-3xl bg-gradient-to-br from-[#00838F] via-[#00ACC1] to-[#00BCD4] text-white px-6 py-8 shadow-xl border border-white/20 relative overflow-hidden">
+          <div className="absolute right-6 top-6 text-xs uppercase tracking-[0.4em] opacity-70">Định hướng</div>
+          <div className="space-y-3 max-w-3xl">
+            <p className="text-sm font-semibold tracking-[0.4em] uppercase opacity-80">Định hướng ngành nghề</p>
+            <h1 className="text-3xl sm:text-4xl font-bold leading-tight">Bài test định hướng 29 câu</h1>
+            <p className="text-base sm:text-lg text-white/90">
+              Hoàn thành bài test để nhận gợi ý nhóm ngành phù hợp nhất dựa trên dữ liệu tuyển sinh và mô tả ngành học.
+            </p>
           </div>
-          <div className="w-full bg-[#E0F7FA] rounded-full h-2">
+          <div className="mt-6 flex flex-wrap gap-3">
+            <span className="px-4 py-2 rounded-full bg-white/15 text-sm font-medium">8 nhóm ngành</span>
+            <span className="px-4 py-2 rounded-full bg-white/15 text-sm font-medium">Dữ liệu cập nhật 2025</span>
+            <span className="px-4 py-2 rounded-full bg-white/15 text-sm font-medium">Thời gian ~5 phút</span>
+          </div>
+        </div>
+        <div className="rounded-2xl bg-white p-5 shadow-xl border border-[#E0F7FA] flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <span className="text-base font-semibold text-slate-700">Tiến độ hoàn thành (29 câu)</span>
+            <span className="text-sm text-slate-500">Đã trả lời <strong className="text-[#00838F]">{answeredCount}</strong> / {questions.length || 0} câu</span>
+          </div>
+          <div className="w-full bg-[#E0F7FA] rounded-full h-3 overflow-hidden">
             <div
-              className="bg-[#00838F] h-2 rounded-full transition-all"
+              className="bg-[#00838F] h-full rounded-full transition-all"
               style={{ width: `${questions.length ? (answeredCount / questions.length) * 100 : 0}%` }}
             />
           </div>
