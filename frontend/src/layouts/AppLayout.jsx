@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import CollapsibleSidebar from "../components/CollapsibleSidebar.jsx";
-import FullWidthFooter from "../components/FullWidthFooter.jsx";
+import Footer from "./Footer.jsx";
 import Topbar from "../components/Topbar.jsx";
+import FloatingChatIcon from "../components/FloatingChatIcon.jsx";
 
 export default function AppLayout() {
   // chiều rộng khi mở/thu sidebar
@@ -46,7 +47,10 @@ export default function AppLayout() {
       </div>
 
       {/* Footer - đặt ngoài để không bị sidebar che */}
-      <FullWidthFooter />
+      <Footer />
+
+      {/* Floating Chat Icon */}
+      <FloatingChatIcon />
     </div>
   );
 }

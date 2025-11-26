@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import SidebarStaff from "../components/SidebarStaff.jsx";
 import Topbar from "../components/Topbar.jsx";
+import StaffChatBox from "../components/StaffChatBox.jsx";
 
 export default function StaffLayout() {
   return (
@@ -22,6 +23,9 @@ export default function StaffLayout() {
           </div>
         </main>
       </div>
+
+      {/* Staff Chat Box */}
+      <StaffChatBox />
     </div>
   );
 }

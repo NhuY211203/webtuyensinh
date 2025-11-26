@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import SidebarConsultant from "../components/SidebarConsultant.jsx";
 import Topbar from "../components/Topbar.jsx";
+import FloatingChatIcon from "../components/FloatingChatIcon.jsx";
 
 export default function ConsultantLayout() {
   return (
@@ -21,6 +22,9 @@ export default function ConsultantLayout() {
           </div>
         </main>
       </div>
+
+      {/* Floating Chat Icon */}
+      <FloatingChatIcon />
     </div>
   );
 }
