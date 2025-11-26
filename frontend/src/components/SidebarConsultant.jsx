@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, Link } from "react-router-dom";
 
 const Item = ({ to, children }) => (
   <NavLink
@@ -14,6 +14,12 @@ const Item = ({ to, children }) => (
 export default function SidebarConsultant() {
   return (
     <aside className="w-72 bg-primary-700 text-white min-h-screen p-4 sticky top-0">
+      <div className="mb-6">
+        <Link to="/" className="flex items-center gap-2">
+          <img src="/logo.svg" alt="Logo" className="h-9 w-9" />
+          <span className="font-bold text-white">Hoa Học Trò</span>
+        </Link>
+      </div>
       <div className="mb-4 font-semibold opacity-90">Chuyên gia tư vấn</div>
       <div className="flex flex-col gap-2">
         <Item to="/consultant">Tổng quan</Item>

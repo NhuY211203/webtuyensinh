@@ -9,6 +9,16 @@ class DiemChuanXetTuyen extends Model
     protected $table = 'diemchuanxettuyen';
     protected $primaryKey = 'iddiemchuan';
     public $timestamps = false;
+    
+    protected $fillable = [
+        'idtruong',
+        'manganh',
+        'idxettuyen',
+        'tohopmon',
+        'diemchuan',
+        'namxettuyen',
+        'ghichu'
+    ];
 }
 
 

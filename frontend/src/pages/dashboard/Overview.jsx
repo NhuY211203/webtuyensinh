@@ -1,12 +1,6 @@
 export default function Overview() {
   const items = [
     {
-      title: "Nhập & quản lý phiếu đăng ký",
-      range: "10/04 – 31/12",
-      bullets: ["Nhập/sửa phiếu đăng ký online", "Tra cứu thông tin đăng ký", "Báo sai sót thông tin"],
-      color: "bg-blue-50 border-blue-200"
-    },
-    {
       title: "Truy cập hệ thống",
       range: "10/04 – 31/12",
       bullets: ["Đăng nhập bằng Email/SĐT", "Cập nhật thông tin cá nhân"],
@@ -21,7 +15,10 @@ export default function Overview() {
   ];
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-4">Lộ trình dự kiến</h1>
+      <h1 className="text-2xl font-bold mb-4">Tổng quan</h1>
+
+      {/* Lộ trình dự kiến */}
+      <h2 className="text-lg font-semibold mb-2">Lộ trình dự kiến</h2>
       <div className="grid gap-4">
         {items.map((it, i) => (
           <div key={i} className={`card border ${it.color} p-5 flex items-start gap-4`}>
@@ -37,6 +34,37 @@ export default function Overview() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Thẻ trạng thái hồ sơ + thanh toán + thông báo + lối tắt */}
+      <div className="grid md:grid-cols-3 gap-4 mt-6">
+        <div className="card p-4">
+          <div className="font-semibold mb-2">Trạng thái hồ sơ</div>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="px-2 py-1 rounded-full bg-yellow-100 text-yellow-700">Thiếu thông tin</span>
+          </div>
+        </div>
+        <div className="card p-4">
+          <div className="font-semibold mb-2">Thanh toán</div>
+          <div className="text-sm text-gray-600">Số NV: 0 • Phí cần nộp: 0đ</div>
+          <button className="btn-primary mt-3">Thanh toán</button>
+        </div>
+        <div className="card p-4">
+          <div className="font-semibold mb-2">Thông báo mới</div>
+          <ul className="text-sm text-gray-700 list-disc pl-4">
+            <li>Chưa có thông báo</li>
+          </ul>
+          <a className="text-primary-600 text-sm mt-2 inline-block" href="/dashboard/notifications-center">Xem tất cả</a>
+        </div>
+      </div>
+
+      <div className="card p-4 mt-4">
+        <div className="font-semibold mb-2">Lối tắt</div>
+        <div className="flex flex-wrap gap-2">
+          <a className="btn-secondary" href="/dashboard/profile">Cập nhật hồ sơ</a>
+          <a className="btn-secondary" href="/dashboard/predictions">Dự đoán theo điểm</a>
+          <a className="btn-secondary" href="/dashboard/advising">Đặt lịch tư vấn</a>
+        </div>
       </div>
     </div>
   );

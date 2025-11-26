@@ -9,6 +9,17 @@ class TruongDaiHoc extends Model
     protected $table = 'truongdaihoc';
     protected $primaryKey = 'idtruong';
     public $timestamps = false;
+
+    protected $fillable = [
+        'matruong',
+        'tentruong',
+        'diachi',
+        'dienthoai',
+        'lienhe',
+        'sodienthoai',
+        'ngaythanhlap',
+        'motantuong'
+    ];
 }
 
 

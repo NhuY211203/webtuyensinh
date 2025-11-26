@@ -94,6 +94,35 @@ export default function ConsultantSchedule() {
     return `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
   };
 
+  // Kiểm tra xem có thể hiển thị nút "Yêu cầu thay đổi lịch" không
+  const canShowChangeRequestButton = (schedule) => {
+    // Không hiển thị nếu đã có yêu cầu thay đổi đang chờ
+    if (schedule.hasPendingChangeRequest) {
+      return false;
+    }
+
+    // Kiểm tra nếu lịch đã qua ngày
+    if (!schedule.ngayhen) {
+      return false;
+    }
+
+    const scheduleDate = new Date(schedule.ngayhen);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    scheduleDate.setHours(0, 0, 0, 0);
+
+    // Không hiển thị nếu lịch đã qua ngày
+    if (scheduleDate < today) {
+      return false;
+    }
+
+    // Kiểm tra nếu còn ít hơn 3 ngày trước lịch tư vấn
+    const daysUntilSchedule = Math.floor((scheduleDate - today) / (1000 * 60 * 60 * 24));
+    
+    // Chỉ hiển thị nếu còn ít nhất 3 ngày
+    return daysUntilSchedule >= 3;
+  };
+
   useEffect(() => {
     fetchSchedules();
   }, [approvalFilter]); // Thêm approvalFilter vào dependency để fetch lại khi filter thay đổi
@@ -575,7 +604,7 @@ export default function ConsultantSchedule() {
                           >
                             Xem yêu cầu đổi lịch
                           </button>
-                        ) : (
+                        ) : canShowChangeRequestButton(schedule) ? (
                           <button
                             onClick={() => {
                               setSelectedScheduleForChange(schedule);
@@ -592,6 +621,20 @@ export default function ConsultantSchedule() {
                           >
                             Yêu cầu thay đổi lịch
                           </button>
+                        ) : (
+                          <span className="text-sm text-gray-400 italic">
+                            {(() => {
+                              if (!schedule.ngayhen) return 'Không có ngày';
+                              const scheduleDate = new Date(schedule.ngayhen);
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
+                              scheduleDate.setHours(0, 0, 0, 0);
+                              if (scheduleDate < today) return 'Đã qua ngày';
+                              const daysUntilSchedule = Math.floor((scheduleDate - today) / (1000 * 60 * 60 * 24));
+                              if (daysUntilSchedule < 3) return 'Còn ít hơn 3 ngày';
+                              return '-';
+                            })()}
+                          </span>
                         )}
                       </div>
                     </td>

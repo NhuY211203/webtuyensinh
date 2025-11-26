@@ -13,6 +13,7 @@ class NguoiDung extends Model
 
     protected $fillable = [
         'idvaitro',
+        'idnhomnganh',
         'taikhoan',
         'matkhau',
         'email',
@@ -40,5 +41,11 @@ class NguoiDung extends Model
     public function vaiTro()
     {
         return $this->belongsTo(VaiTro::class, 'idvaitro', 'idvaitro');
+    }
+
+    // Relationship với NhomNganh
+    public function nhomNganh()
+    {
+        return $this->belongsTo(NhomNganh::class, 'idnhomnganh', 'idnhomnganh');
     }
 }

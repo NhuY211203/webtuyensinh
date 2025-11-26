@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useToast } from './Toast';
 
 export default function StaffChatBox() {
@@ -38,68 +38,7 @@ export default function StaffChatBox() {
     }
   }, []);
 
-  // Load danh sách conversations
-  useEffect(() => {
-    if (isOpen && currentStaffId) {
-      loadConversations();
-      const interval = setInterval(loadConversations, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [isOpen, currentStaffId]);
-
-  // Load messages khi chọn conversation
-  useEffect(() => {
-    if (selectedConversation) {
-      loadMessages();
-      const interval = setInterval(loadMessages, 2000);
-      return () => clearInterval(interval);
-    }
-  }, [selectedConversation]);
-
-  // Scroll to bottom khi có tin nhắn mới
-  useEffect(() => {
-    if (messages.length > 0) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages]);
-
-  const loadConversations = async () => {
-    if (!currentStaffId) return;
-
-    try {
-      setLoadingConversations(true);
-      const response = await fetch(`http://localhost:8000/api/chat-support/staff-rooms?idnguoi_phu_trach=${currentStaffId}`);
-      const data = await response.json();
-      
-      if (data.success) {
-        setConversations(Array.isArray(data.data) ? data.data : []);
-      }
-    } catch (error) {
-      console.error('Error loading conversations:', error);
-    } finally {
-      setLoadingConversations(false);
-    }
-  };
-
-  const loadMessages = async () => {
-    if (!selectedConversation) return;
-
-    try {
-      const response = await fetch(`http://localhost:8000/api/chat-support/messages?idphongchat_support=${selectedConversation.idphongchat_support}`);
-      const data = await response.json();
-      
-      if (data.success) {
-        setMessages(Array.isArray(data.data) ? data.data : []);
-        if (currentStaffId) {
-          markAsRead();
-        }
-      }
-    } catch (error) {
-      console.error('Error loading messages:', error);
-    }
-  };
-
-  const markAsRead = async () => {
+  const markAsRead = useCallback(async () => {
     if (!selectedConversation || !currentStaffId) return;
 
     try {
@@ -116,7 +55,95 @@ export default function StaffChatBox() {
     } catch (error) {
       console.error('Error marking as read:', error);
     }
-  };
+  }, [selectedConversation, currentStaffId]);
+
+  const loadConversations = useCallback(async () => {
+    if (!currentStaffId) return;
+
+    try {
+      setLoadingConversations(true);
+      const response = await fetch(`http://localhost:8000/api/chat-support/staff-rooms?idnguoi_phu_trach=${currentStaffId}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        const newConversations = Array.isArray(data.data) ? data.data : [];
+        // Chỉ update state nếu data thực sự thay đổi
+        setConversations(prev => {
+          const prevIds = prev.map(c => c.idphongchat_support).sort().join(',');
+          const newIds = newConversations.map(c => c.idphongchat_support).sort().join(',');
+          if (prevIds !== newIds) {
+            return newConversations;
+          }
+          // Giữ nguyên state nếu không có thay đổi về danh sách
+          return prev;
+        });
+      }
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    } finally {
+      setLoadingConversations(false);
+    }
+  }, [currentStaffId]);
+
+  const loadMessages = useCallback(async () => {
+    if (!selectedConversation) return;
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/chat-support/messages?idphongchat_support=${selectedConversation.idphongchat_support}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        const newMessages = Array.isArray(data.data) ? data.data : [];
+        // Chỉ update state nếu có thay đổi
+        setMessages(prev => {
+          if (prev.length !== newMessages.length) {
+            return newMessages;
+          }
+          // So sánh ID của tin nhắn cuối cùng
+          const prevLastId = prev[prev.length - 1]?.idtinnhan_support;
+          const newLastId = newMessages[newMessages.length - 1]?.idtinnhan_support;
+          if (prevLastId !== newLastId) {
+            return newMessages;
+          }
+          return prev;
+        });
+        if (currentStaffId) {
+          markAsRead();
+        }
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    }
+  }, [selectedConversation, currentStaffId, markAsRead]);
+
+  // Load danh sách conversations
+  useEffect(() => {
+    if (isOpen && currentStaffId) {
+      loadConversations();
+      // Tăng interval lên 10 giây để giảm số lần reload
+      const interval = setInterval(loadConversations, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [isOpen, currentStaffId, loadConversations]);
+
+  // Load messages khi chọn conversation
+  useEffect(() => {
+    if (selectedConversation) {
+      loadMessages();
+      // Tăng interval lên 5 giây để giảm số lần reload
+      const interval = setInterval(loadMessages, 5000);
+      return () => clearInterval(interval);
+    } else {
+      setMessages([]); // Clear messages khi không có conversation được chọn
+    }
+  }, [selectedConversation, loadMessages]);
+
+  // Scroll to bottom khi có tin nhắn mới
+  useEffect(() => {
+    if (messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
 
   const uploadFile = async (file) => {
     try {
@@ -242,8 +269,10 @@ export default function StaffChatBox() {
       const data = await response.json();
       if (data.success) {
         setMessages(prev => [...prev, data.data]);
-        setTimeout(loadMessages, 100);
-        loadConversations();
+        // Chỉ reload messages và conversations sau khi gửi thành công, không cần setTimeout
+        loadMessages();
+        // Reload conversations để cập nhật unread count, nhưng chỉ khi cần
+        setTimeout(() => loadConversations(), 500);
       } else {
         toast.push({ type: 'error', title: data.message || 'Không thể gửi tin nhắn' });
         setMessageInput(content);

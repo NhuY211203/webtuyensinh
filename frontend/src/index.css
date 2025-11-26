@@ -4,7 +4,55 @@
 
 @layer components {
   .btn-primary { @apply inline-flex items-center justify-center rounded-full bg-primary-600 px-5 py-2.5 text-white font-medium shadow-soft hover:bg-primary-700 active:scale-[.99] transition; }
+  .btn-outline { @apply inline-flex items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-gray-700 font-medium hover:bg-gray-50 active:scale-[.99] transition disabled:opacity-50 disabled:cursor-not-allowed; }
   .card { @apply bg-white rounded-2xl shadow-soft border border-gray-100; }
   .input { @apply w-full rounded-lg border border-gray-300 px-4 py-2 outline-none focus:ring-2 focus:ring-primary-400; }
   .label { @apply block text-sm font-medium text-gray-700 mb-1; }
+}
+
+/* Ẩn hoàn toàn scrollbar cho sidebar */
+.sidebar-scroll::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
+
+.sidebar-scroll {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+/* Scrollbar chỉ hiện khi hover (tùy chọn) */
+.sidebar-scroll:hover::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(255,255,255,0.2);
+  border-radius: 8px;
+}
+
+.sidebar-scroll:hover::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Animation cho thông báo popup */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+/* Utility: Ensure calendar day cell content wraps and stays inside */
+.calendar-day {
+  display: flex;
+  flex-direction: column;
 }

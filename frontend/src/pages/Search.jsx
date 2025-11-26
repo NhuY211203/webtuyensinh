@@ -4,7 +4,7 @@ import SearchFilters from "../components/SearchFilters.jsx";
 
 export default function Search() {
   const [filters, setFilters] = useState({
-    q: "", school: "", method: "", combo: "", year: "", region: "", page: 1
+    q: "", school: "", method: "", combo: "", year: "", region: "", manganh: "", page: 1
   });
   const [programs, setPrograms] = useState([]);
   const [schools, setSchools] = useState([]);
@@ -15,30 +15,20 @@ export default function Search() {
   const [error, setError] = useState(null);
   const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });
 
-  // Load filter options
+  // Load filter options (schools, methods, years - static)
   useEffect(() => {
     let isMounted = true;
     async function loadFilters() {
       try {
-        const [schoolsRes, combosRes] = await Promise.all([
-          fetch("/api/truongdaihoc?perPage=100").catch(() => 
-            fetch("http://127.0.0.1:8000/api/truongdaihoc?perPage=100")
-          ),
-          fetch("/api/tohop-xettuyen?perPage=100").catch(() => 
-            fetch("http://127.0.0.1:8000/api/tohop-xettuyen?perPage=100")
-          )
-        ]);
+        const schoolsRes = await fetch("/api/truongdaihoc?perPage=100").catch(() => 
+          fetch("http://127.0.0.1:8000/api/truongdaihoc?perPage=100")
+        );
         
         if (!isMounted) return;
         
         if (schoolsRes.ok) {
           const schoolsData = await schoolsRes.json();
           setSchools(schoolsData.data.map(s => ({ value: s.idtruong, label: s.tentruong })));
-        }
-        
-        if (combosRes.ok) {
-          const combosData = await combosRes.json();
-          setCombos(combosData.data.map(c => ({ value: c.ma_to_hop, label: `${c.ma_to_hop} - ${c.mo_ta}` })));
         }
         
         // Load methods from API
@@ -52,7 +42,22 @@ export default function Search() {
           }
         } catch {}
         
-        setYears([2024, 2023, 2022, 2021, 2020].map(y => ({ value: y, label: y })));
+        // Load years from API
+        try {
+          const yearsRes = await fetch("/api/years").catch(() =>
+            fetch("http://127.0.0.1:8000/api/years")
+          );
+          if (yearsRes?.ok) {
+            const yearsData = await yearsRes.json();
+            setYears((yearsData.data || []).map(y => ({ value: y.value || y, label: y.label || y })));
+          } else {
+            // Fallback to hardcoded years
+            setYears([2024, 2023, 2022, 2021, 2020].map(y => ({ value: y, label: y })));
+          }
+        } catch {
+          // Fallback to hardcoded years
+          setYears([2024, 2023, 2022, 2021, 2020].map(y => ({ value: y, label: y })));
+        }
       } catch (error) {
         if (!isMounted) return;
         console.error("Error loading filters:", error);
@@ -63,6 +68,62 @@ export default function Search() {
     return () => { isMounted = false; };
   }, []);
 
+  // Load combos based on selected major (manganh)
+  useEffect(() => {
+    let isMounted = true;
+    async function loadCombos() {
+      try {
+        let url = '/api/tohop-xettuyen';
+        const params = new URLSearchParams();
+        
+        // If manganh is selected, filter combos by major
+        if (filters.manganh) {
+          params.append('manganh', filters.manganh);
+          // Optional: also filter by school and method if selected
+          if (filters.school) params.append('idtruong', filters.school);
+          if (filters.method) params.append('idxettuyen', filters.method);
+          if (filters.year) params.append('nam', filters.year);
+          url += '?' + params.toString();
+        } else {
+          // Load all combos if no major selected
+          params.append('perPage', '100');
+          url += '?' + params.toString();
+        }
+        
+        const combosRes = await fetch(url).catch(() => 
+          fetch(`http://127.0.0.1:8000${url}`)
+        );
+        
+        if (!isMounted) return;
+        
+        if (combosRes.ok) {
+          const combosData = await combosRes.json();
+          // Handle both paginated and non-paginated responses
+          const combosList = combosData.data || [];
+          setCombos(combosList.map(c => ({ 
+            value: c.ma_to_hop || c.code, 
+            label: c.mo_ta ? `${c.ma_to_hop || c.code} - ${c.mo_ta}` : (c.label || c.ma_to_hop || c.code)
+          })));
+          
+          // Clear combo selection if current combo is not in the new list
+          if (filters.combo) {
+            const comboExists = combosList.some(c => 
+              (c.ma_to_hop || c.code) === filters.combo
+            );
+            if (!comboExists) {
+              setFilters(prev => ({ ...prev, combo: "" }));
+            }
+          }
+        }
+      } catch (error) {
+        if (!isMounted) return;
+        console.error("Error loading combos:", error);
+      }
+    }
+    loadCombos();
+    return () => { isMounted = false; };
+  }, [filters.manganh, filters.school, filters.method, filters.year]);
+
   // Load programs based on filters
   useEffect(() => {
     let isMounted = true;
@@ -70,11 +131,19 @@ export default function Search() {
       setLoading(true);
       try {
         const params = new URLSearchParams();
-        if (filters.q) params.append('keyword', filters.q);
+        // If manganh is set (from dropdown selection), use it for precise filtering
+        // Otherwise, use keyword for text search
+        if (filters.manganh) {
+          params.append('manganh', filters.manganh);
+        } else if (filters.q) {
+          params.append('keyword', filters.q);
+        }
         if (filters.school) params.append('idtruong', filters.school);
         if (filters.combo) params.append('tohop', filters.combo);
         if (filters.year) params.append('nam', filters.year);
-        if (filters.method) params.append('idxettuyen', filters.method);
+        if (filters.method && filters.method !== '') {
+          params.append('idxettuyen', String(filters.method));
+        }
         params.append('perPage', '20');
         params.append('page', filters.page);
         

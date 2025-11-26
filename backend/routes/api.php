@@ -17,6 +17,7 @@ use App\Http\Controllers\NhomNganhController;
 use App\Http\Controllers\NganhTruongController;
 use App\Http\Controllers\PhuongThucXetTuyenController;
 use App\Http\Controllers\TinTuyenSinhController;
+use App\Http\Controllers\CareerTestController;
 
 Route::get('/vaitro', [VaiTroController::class, 'index']);
 Route::get('/stats', [StatsController::class, 'index']);
@@ -36,6 +37,11 @@ Route::get('/diemchuan/{id}', [CatalogController::class, 'diemchuanDetail']);
 Route::post('/diemchuan', [CatalogController::class, 'storeDiemchuan']);
 Route::post('/diemchuan/import', [CatalogController::class, 'importDiemchuan']);
 Route::post('/predict', [CatalogController::class, 'predict']);
+
+Route::prefix('career-test')->group(function () {
+    Route::get('/questions', [CareerTestController::class, 'questions']);
+    Route::post('/submit', [CareerTestController::class, 'submit']);
+});
 
 // Authentication routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -78,6 +84,7 @@ Route::put('/staff/consultants/{id}/status', [AuthController::class, 'updateCons
 
 // Consultation schedule routes
 Route::get('/consultation-schedules', [AuthController::class, 'getConsultationSchedules']);
+Route::get('/consultation-schedules/all', [AuthController::class, 'getAllConsultationSchedules']);
 Route::get('/consultation-schedules-for-approval', [AuthController::class, 'getConsultationSchedulesForApproval']);
 Route::post('/consultation-schedules', [AuthController::class, 'createConsultationSchedule']);
 Route::post('/consultation-schedules/approve', [AuthController::class, 'approveConsultationSchedule']);
@@ -90,6 +97,8 @@ Route::get('/schedule-change-requests', [AuthController::class, 'getScheduleChan
 Route::post('/schedule-change-requests/{id}/approve', [AuthController::class, 'approveScheduleChangeRequest']);
 Route::post('/schedule-change-requests/{id}/reject', [AuthController::class, 'rejectScheduleChangeRequest']);
 Route::get('/my-appointments', [AuthController::class, 'getMyAppointments']);
+Route::get('/my-reward-points', [AuthController::class, 'getMyRewardPoints']);
+Route::get('/staff/consultant-statistics', [AuthController::class, 'getConsultantStatistics']);
 
 // Chat hỗ trợ giữa người dùng và người phụ trách
 Route::post('/chat-support/get-or-create-room', [ChatSupportController::class, 'getOrCreateRoom']);

@@ -19,12 +19,17 @@ export default function Navbar() {
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 lg:px-6 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <div className="h-9 w-9 rounded-xl bg-primary-500 grid place-items-center text-white font-bold">VN</div>
-          <span className="font-semibold">Tuyển Sinh</span>
+          <img 
+            src="/logo.svg" 
+            alt="Hoa học trò" 
+            className="h-12 w-12 object-contain"
+          />
+          <span className="font-bold text-gray-900 text-2xl">Hoa Học Trò</span>
         </Link>
         <nav className="hidden md:flex items-center gap-1">
           <NavItem to="/">Trang chủ</NavItem>
           <NavItem to="/search">Tìm kiếm</NavItem>
+          <NavItem to="/news">Tin tức</NavItem>
           {/* <NavItem to="/admin/programs">Quản trị</NavItem> */}
         </nav>
         <div className="flex items-center gap-2">

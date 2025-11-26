@@ -151,7 +151,7 @@ export default function CollapsibleSidebar({ collapsed, setCollapsed, mobileOpen
 
         {/* Định hướng ngành */}
         <MenuItem to="/dashboard/career-test" icon="🧭">
-          Test định hướng ngành
+          Định hướng ngành học
         </MenuItem>
 
         {/* TRA CỨU */}

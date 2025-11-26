@@ -9,9 +9,12 @@ use App\Models\NguoiDung;
 use App\Models\NhomNganh;
 use App\Models\LichTuVan;
 use App\Models\ThongBaoLich;
+use App\Models\ThongBao;
 use App\Models\GhiChuBuoiTuVan;
 use App\Models\TepMinhChungBuoiTuVan;
 use App\Models\YeuCauDoiLich;
+use App\Models\DiemBoiDuong;
+use App\Models\ThanhToan;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -777,6 +780,355 @@ class AuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Có lỗi xảy ra khi lấy lịch tư vấn',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Lấy điểm đổi thưởng của người dùng
+     */
+    public function getMyRewardPoints(Request $request): JsonResponse
+    {
+        try {
+            $userId = $request->input('user_id');
+
+            if (!$userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Thiếu user_id'
+                ], 400);
+            }
+
+            // Lấy tất cả điểm bồi đắp của người dùng
+            $points = DiemBoiDuong::with(['lichTuVan', 'yeuCauDoiLich', 'nguoiTao'])
+                ->where('idnguoidung', $userId)
+                ->orderBy('ngay_tao', 'desc')
+                ->get();
+
+            // Tính tổng hợp
+            $tongDiem = $points->sum('so_diem');
+            $tongDiemChuaDung = $points->where('trang_thai', 1)->sum('so_diem');
+            $tongDiemDaDung = $points->where('trang_thai', 2)->sum('so_diem');
+            $soLuongChuaDung = $points->where('trang_thai', 1)->count();
+            $soLuongDaDung = $points->where('trang_thai', 2)->count();
+
+            $data = $points->map(function ($point) {
+                return [
+                    'iddiem_boi_duong' => $point->iddiem_boi_duong,
+                    'so_diem' => (float) $point->so_diem,
+                    'trang_thai' => (int) $point->trang_thai,
+                    'trang_thai_text' => $point->trang_thai == 1 ? 'Chưa sử dụng' : ($point->trang_thai == 2 ? 'Đã sử dụng' : 'Đã hết hạn'),
+                    'ngay_tao' => $point->ngay_tao ? $point->ngay_tao->format('Y-m-d H:i:s') : null,
+                    'ngay_tao_formatted' => $point->ngay_tao ? $point->ngay_tao->format('d/m/Y H:i') : null,
+                    'idlichtuvan' => $point->idlichtuvan,
+                    'lichtuvan' => $point->lichTuVan ? [
+                        'idlichtuvan' => $point->lichTuVan->idlichtuvan,
+                        'tieude' => $point->lichTuVan->tieude,
+                        'ngayhen' => $point->lichTuVan->ngayhen ? $point->lichTuVan->ngayhen->format('d/m/Y') : null,
+                    ] : null,
+                    'iddoilich' => $point->iddoilich,
+                    'nguoi_tao' => $point->nguoiTao ? [
+                        'idnguoidung' => $point->nguoiTao->idnguoidung,
+                        'hoten' => $point->nguoiTao->hoten,
+                    ] : null,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+                'summary' => [
+                    'tong_diem' => (float) $tongDiem,
+                    'tong_diem_chua_dung' => (float) $tongDiemChuaDung,
+                    'tong_diem_da_dung' => (float) $tongDiemDaDung,
+                    'so_luong_chua_dung' => $soLuongChuaDung,
+                    'so_luong_da_dung' => $soLuongDaDung,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Lỗi khi lấy điểm đổi thưởng:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra khi lấy điểm đổi thưởng',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Thống kê số buổi tư vấn, doanh thu và số lần thay đổi lịch của các tư vấn viên
+     */
+    public function getConsultantStatistics(Request $request): JsonResponse
+    {
+        try {
+            $dateFrom = $request->input('date_from');
+            $dateTo = $request->input('date_to');
+            $consultantId = $request->input('consultant_id'); // Lọc theo tư vấn viên cụ thể
+
+            // Lấy tất cả tư vấn viên
+            $consultantsQuery = NguoiDung::where('idvaitro', 4); // 4 = Tư vấn viên
+            
+            if ($consultantId) {
+                $consultantsQuery->where('idnguoidung', $consultantId);
+            }
+
+            $consultants = $consultantsQuery->get();
+
+            $statistics = $consultants->map(function ($consultant) use ($dateFrom, $dateTo) {
+                // Đếm số buổi tư vấn đã đặt (trangthai = 2: Đã đặt) hoặc đã hoàn thành (trangthai = 4: Hoàn thành)
+                $schedulesQuery = LichTuVan::where('idnguoidung', $consultant->idnguoidung)
+                    ->whereIn('trangthai', [2, 4]) // 2 = Đã đặt, 4 = Hoàn thành
+                    ->whereNotNull('idnguoidat'); // Đã có người đặt
+
+                if ($dateFrom) {
+                    $schedulesQuery->where('ngayhen', '>=', $dateFrom);
+                }
+                if ($dateTo) {
+                    $schedulesQuery->where('ngayhen', '<=', $dateTo);
+                }
+
+                $schedules = $schedulesQuery->get();
+                $soBuoiTuVan = $schedules->count();
+
+                // Tính doanh thu từ các buổi tư vấn (tất cả các lịch đã đặt)
+                $scheduleIds = $schedules->pluck('idlichtuvan');
+                
+                // Tính doanh thu từ tất cả các giao dịch liên quan đến các lịch này
+                // Lấy tất cả các giao dịch, không lọc theo trạng thái (để xem tất cả)
+                $allPayments = \App\Models\ThanhToan::whereIn('id_lichtuvan', $scheduleIds)->get();
+                
+                // Tính doanh thu từ các giao dịch đã thanh toán thành công
+                $paidPayments = $allPayments->filter(function ($payment) {
+                    // Chấp nhận các trạng thái: DaThanhToan, Da Thanh Toan, hoặc các biến thể
+                    $status = strtolower(trim($payment->trang_thai ?? ''));
+                    return in_array($status, ['dathanhtoan', 'da thanh toan', 'thanhtoan', 'thanh toan']);
+                });
+                
+                $tongDoanhThu = $paidPayments->sum(function ($payment) {
+                    // Ưu tiên dùng so_tien_thuc_thu nếu có
+                    if (isset($payment->so_tien_thuc_thu) && $payment->so_tien_thuc_thu > 0) {
+                        return (float)$payment->so_tien_thuc_thu;
+                    }
+                    // Nếu không có, tính từ so_tien - so_tien_giam - phi_giao_dich
+                    $amount = (float)($payment->so_tien ?? 0);
+                    $discount = (float)($payment->so_tien_giam ?? 0);
+                    $fee = (float)($payment->phi_giao_dich ?? 0);
+                    return $amount - $discount - $fee;
+                });
+                
+                // Debug log để kiểm tra
+                if ($soBuoiTuVan > 0 && $tongDoanhThu == 0) {
+                    \Log::info('Thống kê doanh thu - Có lịch nhưng không có doanh thu:', [
+                        'consultant_id' => $consultant->idnguoidung,
+                        'so_buoi' => $soBuoiTuVan,
+                        'schedule_ids' => $scheduleIds->toArray(),
+                        'total_payments' => $allPayments->count(),
+                        'paid_payments' => $paidPayments->count(),
+                        'payment_statuses' => $allPayments->pluck('trang_thai')->unique()->toArray(),
+                    ]);
+                }
+
+                // Đếm số lần thay đổi lịch (yêu cầu đã được duyệt - trangthai_duyet = 2)
+                $changeRequestsQuery = YeuCauDoiLich::whereHas('lichTuVan', function ($q) use ($consultant) {
+                    $q->where('idnguoidung', $consultant->idnguoidung);
+                })
+                ->where('trangthai_duyet', 2); // Đã duyệt
+
+                if ($dateFrom) {
+                    $changeRequestsQuery->where('thoigian_duyet', '>=', $dateFrom . ' 00:00:00');
+                }
+                if ($dateTo) {
+                    $changeRequestsQuery->where('thoigian_duyet', '<=', $dateTo . ' 23:59:59');
+                }
+
+                $soLanThayDoiLich = $changeRequestsQuery->count();
+
+                // Tính tiền công (có thể trừ theo số lần thay đổi lịch)
+                // Giả sử mỗi buổi tư vấn = 500,000 VND, mỗi lần thay đổi lịch trừ 150,000 VND
+                $tienCongMoiBuoi = 500000; // 500k mỗi buổi
+                $truTienMoiLanDoiLich = 150000; // 150k mỗi lần đổi lịch
+                $tongTienCong = ($soBuoiTuVan * $tienCongMoiBuoi) - ($soLanThayDoiLich * $truTienMoiLanDoiLich);
+
+                return [
+                    'idnguoidung' => $consultant->idnguoidung,
+                    'hoten' => $consultant->hoten,
+                    'email' => $consultant->email,
+                    'so_buoi_tu_van' => $soBuoiTuVan,
+                    'tong_doanh_thu' => round($tongDoanhThu, 2),
+                    'so_lan_thay_doi_lich' => $soLanThayDoiLich,
+                    'tong_tien_cong' => max(0, round($tongTienCong, 2)), // Đảm bảo không âm
+                    'tien_cong_moi_buoi' => $tienCongMoiBuoi,
+                    'tru_tien_moi_lan_doi_lich' => $truTienMoiLanDoiLich,
+                ];
+            });
+
+            // Tính tổng hợp
+            $tongHop = [
+                'tong_so_tu_van_vien' => $statistics->count(),
+                'tong_so_buoi_tu_van' => $statistics->sum('so_buoi_tu_van'),
+                'tong_doanh_thu' => round($statistics->sum('tong_doanh_thu'), 2),
+                'tong_so_lan_thay_doi_lich' => $statistics->sum('so_lan_thay_doi_lich'),
+                'tong_tien_cong' => round($statistics->sum('tong_tien_cong'), 2),
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => $statistics,
+                'summary' => $tongHop,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Lỗi khi lấy thống kê tư vấn viên:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra khi lấy thống kê',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Lấy tất cả lịch tư vấn (dành cho quản lý)
+     */
+    public function getAllConsultationSchedules(Request $request): JsonResponse
+    {
+        try {
+            $dateFrom = $request->input('date_from');
+            $dateTo = $request->input('date_to');
+            $status = $request->input('status'); // trangthai: 1=Trống, 2=Đã đặt, 3=Đã hủy, 4=Hoàn thành
+            $duyetlich = $request->input('duyetlich'); // 1=Chờ duyệt, 2=Đã duyệt, 3=Từ chối
+            $consultantId = $request->input('consultant_id');
+            $search = $request->input('search'); // Tìm kiếm theo tên, email, tiêu đề
+            $timeFilter = $request->input('time_filter', 'all'); // all, past, upcoming
+            
+            $query = LichTuVan::with(['nguoiDung', 'nguoiDat', 'nguoiDuyet', 'ghiChu', 'tepMinhChung']);
+            
+            // Chỉ hiển thị các lịch tư vấn đã có người đặt
+            $query->whereNotNull('idnguoidat');
+            
+            // Filter theo ngày
+            if ($dateFrom) {
+                $query->where('ngayhen', '>=', $dateFrom);
+            }
+            if ($dateTo) {
+                $query->where('ngayhen', '<=', $dateTo);
+            }
+            
+            // Filter theo thời gian (quá khứ/sắp tới)
+            if ($timeFilter === 'past') {
+                $query->where('ngayhen', '<', Carbon::today());
+            } elseif ($timeFilter === 'upcoming') {
+                $query->where('ngayhen', '>=', Carbon::today());
+            }
+            
+            // Filter theo trạng thái
+            if ($status !== null && $status !== '') {
+                $query->where('trangthai', $status);
+            }
+            
+            // Filter theo trạng thái duyệt
+            if ($duyetlich !== null && $duyetlich !== '') {
+                $query->where('duyetlich', $duyetlich);
+            }
+            
+            // Filter theo tư vấn viên
+            if ($consultantId) {
+                $query->where('idnguoidung', $consultantId);
+            }
+            
+            // Tìm kiếm
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('tieude', 'like', "%{$search}%")
+                      ->orWhere('noidung', 'like', "%{$search}%")
+                      ->orWhereHas('nguoiDung', function($subQ) use ($search) {
+                          $subQ->where('hoten', 'like', "%{$search}%")
+                               ->orWhere('email', 'like', "%{$search}%");
+                      })
+                      ->orWhereHas('nguoiDat', function($subQ) use ($search) {
+                          $subQ->where('hoten', 'like', "%{$search}%")
+                               ->orWhere('email', 'like', "%{$search}%");
+                      });
+                });
+            }
+            
+            $schedules = $query->orderBy('ngayhen', 'desc')
+                ->orderBy('giobatdau', 'desc')
+                ->paginate($request->get('per_page', 20));
+            
+            $data = $schedules->map(function($schedule) {
+                // Đếm số lượng ghi chú (cả NHAP và CHOT)
+                $ghiChuCount = $schedule->ghiChu ? $schedule->ghiChu->count() : 0;
+                $hasGhiChu = $ghiChuCount > 0;
+                
+                // Đếm số lượng minh chứng
+                $minhChungCount = $schedule->tepMinhChung ? $schedule->tepMinhChung->count() : 0;
+                $hasMinhChung = $minhChungCount > 0;
+                
+                return [
+                    'idlichtuvan' => $schedule->idlichtuvan,
+                    'tieude' => $schedule->tieude,
+                    'noidung' => $schedule->noidung,
+                    'chudetuvan' => $schedule->chudetuvan,
+                    'molavande' => $schedule->molavande,
+                    'ngayhen' => $schedule->ngayhen ? $schedule->ngayhen->format('Y-m-d') : null,
+                    'giohen' => $schedule->giohen ? $schedule->giohen->format('H:i') : null,
+                    'giobatdau' => $schedule->giobatdau ? $schedule->giobatdau->format('H:i') : null,
+                    'ketthuc' => $schedule->ketthuc ? $schedule->ketthuc->format('H:i') : null,
+                    'tinhtrang' => $schedule->tinhtrang,
+                    'trangthai' => (int) $schedule->trangthai,
+                    'duyetlich' => (int) $schedule->duyetlich,
+                    'ghichu' => $schedule->ghichu,
+                    'hasGhiChu' => $hasGhiChu,
+                    'ghiChuCount' => $ghiChuCount,
+                    'hasMinhChung' => $hasMinhChung,
+                    'minhChungCount' => $minhChungCount,
+                    'nguoiDung' => $schedule->nguoiDung ? [
+                        'idnguoidung' => $schedule->nguoiDung->idnguoidung,
+                        'hoten' => $schedule->nguoiDung->hoten,
+                        'email' => $schedule->nguoiDung->email,
+                    ] : null,
+                    'nguoiDat' => $schedule->nguoiDat ? [
+                        'idnguoidung' => $schedule->nguoiDat->idnguoidung,
+                        'hoten' => $schedule->nguoiDat->hoten,
+                        'email' => $schedule->nguoiDat->email,
+                    ] : null,
+                    'nguoiDuyet' => $schedule->nguoiDuyet ? [
+                        'idnguoidung' => $schedule->nguoiDuyet->idnguoidung,
+                        'hoten' => $schedule->nguoiDuyet->hoten,
+                        'email' => $schedule->nguoiDuyet->email,
+                    ] : null,
+                    'ngayduyet' => $schedule->ngayduyet ? $schedule->ngayduyet->format('Y-m-d H:i:s') : null,
+                ];
+            });
+            
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+                'pagination' => [
+                    'current_page' => $schedules->currentPage(),
+                    'last_page' => $schedules->lastPage(),
+                    'per_page' => $schedules->perPage(),
+                    'total' => $schedules->total(),
+                ]
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error getting all consultation schedules:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Có lỗi xảy ra khi lấy danh sách lịch tư vấn',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -3420,7 +3772,7 @@ class AuthController extends Controller
                 ], 422);
             }
 
-            $changeRequest = YeuCauDoiLich::with('lichTuVan')->findOrFail($id);
+            $changeRequest = YeuCauDoiLich::with(['lichTuVan', 'nguoiGuiYeuCau'])->findOrFail($id);
 
             // Kiểm tra yêu cầu đã được duyệt/từ chối chưa
             if ($changeRequest->trangthai_duyet !== 1) {
@@ -3444,23 +3796,125 @@ class AuthController extends Controller
                     'ghichu_duyet' => $request->ghichu_duyet,
                 ]);
 
+                // Lấy giá trị giomoi dạng string (H:i) để so khớp với mảng
+                // Sử dụng getRawOriginal để lấy giá trị gốc từ database, tránh ảnh hưởng của cast
+                $giomoiRaw = $changeRequest->getRawOriginal('giomoi');
+                
+                // Chuyển đổi từ '09:05:00' hoặc '09:05' thành '09:05' (format H:i)
+                if (!empty($giomoiRaw)) {
+                    // Nếu có giây (dạng '09:05:00'), lấy 5 ký tự đầu
+                    $giomoiFormatted = strlen($giomoiRaw) >= 5 ? substr($giomoiRaw, 0, 5) : $giomoiRaw;
+                } else {
+                    // Fallback: thử lấy từ attribute đã cast
+                    if ($changeRequest->giomoi instanceof \Carbon\Carbon) {
+                        $giomoiFormatted = $changeRequest->giomoi->format('H:i');
+                    } elseif (is_string($changeRequest->giomoi)) {
+                        $giomoiFormatted = substr($changeRequest->giomoi, 0, 5);
+                    } else {
+                        $giomoiFormatted = '09:05'; // Giá trị mặc định
+                    }
+                }
+                
+                // Tính giờ kết thúc dựa trên ca học
+                $timeSlots = [
+                    '07:00' => '09:00',
+                    '09:05' => '11:05',
+                    '13:05' => '15:05',
+                    '15:10' => '17:10',
+                ];
+                $endTime = $timeSlots[$giomoiFormatted] ?? '09:00';
+
                 // Cập nhật lịch tư vấn với thông tin mới
                 $schedule = $changeRequest->lichTuVan;
                 if ($schedule) {
-                    // Tính giờ kết thúc dựa trên ca học
-                    $timeSlots = [
-                        '07:00' => '09:00',
-                        '09:05' => '11:05',
-                        '13:05' => '15:05',
-                        '15:10' => '17:10',
-                    ];
-                    $endTime = $timeSlots[$changeRequest->giomoi] ?? '09:00';
-
                     $schedule->update([
                         'ngayhen' => $changeRequest->ngaymoi,
-                        'giohen' => $changeRequest->giomoi,
-                        'giobatdau' => $changeRequest->giomoi,
-                        'ketthuc' => $endTime,
+                        'giohen' => $giomoiFormatted . ':00', // Thêm giây để phù hợp với định dạng database
+                        'giobatdau' => $giomoiFormatted . ':00',
+                        'ketthuc' => $endTime . ':00',
+                    ]);
+
+                    // Nếu lịch đã có người đăng ký, tạo điểm bồi đắp 100 điểm cho người đó
+                    if ($schedule->idnguoidat) {
+                        DiemBoiDuong::create([
+                            'idnguoidung' => $schedule->idnguoidat,
+                            'idlichtuvan' => $schedule->idlichtuvan,
+                            'iddoilich' => $changeRequest->iddoilich,
+                            'so_diem' => 100.00,
+                            'trang_thai' => 1, // 1 = Chưa sử dụng
+                            'nguoi_tao' => $approverId,
+                        ]);
+
+                        // Tạo thông báo cho người đã đăng ký lịch về việc nhận điểm bồi đắp
+                        $nguoiDat = NguoiDung::find($schedule->idnguoidat);
+                        if ($nguoiDat) {
+                            $nguoiDuyet = NguoiDung::find($approverId);
+                            $tenNguoiDuyet = $nguoiDuyet ? $nguoiDuyet->hoten : 'Quản trị viên';
+                            
+                            $tieudeDiem = 'Bạn đã nhận 100 điểm bồi đắp';
+                            $noidungDiem = "Lịch tư vấn của bạn đã bị thay đổi bởi {$tenNguoiDuyet}.\n\n";
+                            $noidungDiem .= "Để bù đắp sự bất tiện, bạn đã nhận được 100 điểm bồi đắp.\n";
+                            $noidungDiem .= "Bạn có thể sử dụng điểm này cho các dịch vụ của hệ thống.";
+                            
+                            ThongBao::create([
+                                'tieude' => $tieudeDiem,
+                                'noidung' => $noidungDiem,
+                                'nguoitao_id' => $approverId,
+                                'idnguoinhan' => $schedule->idnguoidat,
+                                'thoigiangui_dukien' => Carbon::now(),
+                                'kieuguithongbao' => 'ngay', // Gửi ngay
+                                'ngaytao' => Carbon::now(),
+                                'ngaycapnhat' => Carbon::now(),
+                            ]);
+                            
+                            \Log::info('Đã tạo thông báo điểm bồi đắp cho người đăng ký lịch:', [
+                                'idnguoidung' => $schedule->idnguoidat,
+                                'idlichtuvan' => $schedule->idlichtuvan,
+                                'iddoilich' => $changeRequest->iddoilich
+                            ]);
+                        }
+
+                        \Log::info('Đã tạo điểm bồi đắp cho người dùng bị đổi lịch:', [
+                            'idnguoidung' => $schedule->idnguoidat,
+                            'idlichtuvan' => $schedule->idlichtuvan,
+                            'iddoilich' => $changeRequest->iddoilich,
+                            'so_diem' => 100.00
+                        ]);
+                    }
+                }
+
+                // Tạo thông báo cho người yêu cầu thay đổi lịch
+                if ($changeRequest->nguoiGuiYeuCau) {
+                    $nguoiDuyet = NguoiDung::find($approverId);
+                    $tenNguoiDuyet = $nguoiDuyet ? $nguoiDuyet->hoten : 'Quản trị viên';
+                    
+                    // Lấy thông tin lịch mới
+                    $ngayMoi = $changeRequest->ngaymoi ? Carbon::parse($changeRequest->ngaymoi)->format('d/m/Y') : '';
+                    
+                    $tieude = 'Yêu cầu thay đổi lịch tư vấn đã được duyệt';
+                    $noidung = "Yêu cầu thay đổi lịch tư vấn của bạn đã được {$tenNguoiDuyet} duyệt.\n\n";
+                    $noidung .= "Lịch mới:\n";
+                    $noidung .= "- Ngày: {$ngayMoi}\n";
+                    $noidung .= "- Thời gian: {$giomoiFormatted} - {$endTime}\n";
+                    if ($request->ghichu_duyet) {
+                        $noidung .= "\nGhi chú: {$request->ghichu_duyet}";
+                    }
+                    
+                    ThongBao::create([
+                        'tieude' => $tieude,
+                        'noidung' => $noidung,
+                        'nguoitao_id' => $approverId,
+                        'idnguoinhan' => $changeRequest->nguoigui_yeucau,
+                        'thoigiangui_dukien' => Carbon::now(),
+                        'kieuguithongbao' => 'ngay', // Gửi ngay
+                        'ngaytao' => Carbon::now(),
+                        'ngaycapnhat' => Carbon::now(),
+                    ]);
+                    
+                    \Log::info('Đã tạo thông báo cho người yêu cầu thay đổi lịch:', [
+                        'iddoilich' => $changeRequest->iddoilich,
+                        'idnguoinhan' => $changeRequest->nguoigui_yeucau,
+                        'nguoiduyet' => $approverId
                     ]);
                 }
 
