@@ -7,6 +7,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 use App\Models\NguoiDung;
 use App\Models\NhomNganh;
+use App\Models\VaiTro;
 use App\Models\LichTuVan;
 use App\Models\ThongBaoLich;
 use App\Models\ThongBao;
@@ -216,6 +217,7 @@ class AuthController extends Controller
                     'trangthai',
                     'ngaytao'
                 )
+                ->orderBy('ngaytao', 'desc') // Sắp xếp theo ngày tạo mới nhất trước
                 ->paginate($perPage, ['*'], 'page', $page);
 
             return response()->json([
@@ -724,10 +726,19 @@ class AuthController extends Controller
             ], 422);
         }
 
+        // Kiểm tra không cho phép tạo người dùng với vai trò "Tư vấn viên"
+        $vaiTro = VaiTro::find($request->idvaitro);
+        if ($vaiTro && $vaiTro->tenvaitro === 'Tư vấn viên') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể tạo người dùng với vai trò Tư vấn viên',
+                'errors' => ['idvaitro' => ['Không thể tạo người dùng với vai trò Tư vấn viên']]
+            ], 422);
+        }
+
         try {
             $nguoiDung = NguoiDung::create([
                 'idvaitro' => $request->idvaitro,
-                'idnhomnganh' => $request->idnhomnganh,
                 'taikhoan' => $request->email,
                 'matkhau' => $request->matkhau,
                 'email' => $request->email,
@@ -2395,7 +2406,10 @@ class AuthController extends Controller
             'status' => 'required|in:Hoạt động,Tạm dừng',
             'address' => 'nullable|string|max:500',
             'birthday' => 'nullable|date|before:today',
-            'gender' => 'nullable|in:Nam,Nữ,Khác'
+            'gender' => 'nullable|in:Nam,Nữ,Khác',
+            'avatar' => 'nullable|file|image|max:5120',
+            'hinhdaidien' => 'nullable|url',
+            'gioithieu' => 'nullable|string|max:2000'
         ], [
             'name.required' => 'Họ tên là bắt buộc',
             'name.string' => 'Họ tên phải là chuỗi ký tự',
@@ -2416,7 +2430,12 @@ class AuthController extends Controller
             'address.max' => 'Địa chỉ không được quá 500 ký tự',
             'birthday.date' => 'Ngày sinh không đúng định dạng',
             'birthday.before' => 'Ngày sinh phải trước ngày hiện tại',
-            'gender.in' => 'Giới tính không hợp lệ'
+            'gender.in' => 'Giới tính không hợp lệ',
+            'avatar.file' => 'File không hợp lệ',
+            'avatar.image' => 'File phải là hình ảnh',
+            'avatar.max' => 'Kích thước file không được quá 5MB',
+            'hinhdaidien.url' => 'URL hình đại diện không hợp lệ',
+            'gioithieu.max' => 'Giới thiệu không được quá 2000 ký tự'
         ]);
 
         if ($validator->fails()) {
@@ -2428,6 +2447,38 @@ class AuthController extends Controller
         }
 
         try {
+            $hinhdaidien = null;
+            
+            // Xử lý upload ảnh đại diện
+            if ($request->hasFile('avatar')) {
+                try {
+                    $client = $this->makeCloudinaryClient();
+                    $publicId = 'consultants/avatars/consultant_' . time() . '_' . uniqid();
+                    $uploadResult = $client->uploadApi()->upload(
+                        $request->file('avatar')->getRealPath(),
+                        [
+                            'public_id' => $publicId,
+                            'overwrite' => false,
+                            'resource_type' => 'image',
+                            'transformation' => [
+                                ['width' => 600, 'height' => 600, 'crop' => 'fill', 'gravity' => 'face'],
+                                ['quality' => 'auto', 'fetch_format' => 'auto'],
+                            ],
+                        ]
+                    );
+                    $hinhdaidien = $uploadResult['secure_url'] ?? null;
+                } catch (\Exception $cloudError) {
+                    \Log::error('Upload avatar failed: ' . $cloudError->getMessage());
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Không thể upload ảnh đại diện lên Cloudinary',
+                        'error' => $cloudError->getMessage(),
+                    ], 500);
+                }
+            } elseif ($request->filled('hinhdaidien')) {
+                $hinhdaidien = $request->hinhdaidien;
+            }
+            
             $consultant = NguoiDung::create([
                 'idvaitro' => 4, // Tư vấn viên
                 'idnhomnganh' => $request->nganhHoc,
@@ -2439,6 +2490,8 @@ class AuthController extends Controller
                 'diachi' => $request->address,
                 'ngaysinh' => $request->birthday,
                 'gioitinh' => $request->gender,
+                'hinhdaidien' => $hinhdaidien,
+                'gioithieu' => $request->gioithieu,
                 'trangthai' => $request->status === 'Hoạt động' ? 1 : 0,
                 'ngaytao' => now(),
                 'ngaycapnhat' => now()
@@ -2478,7 +2531,10 @@ class AuthController extends Controller
             'status' => 'sometimes|in:Hoạt động,Tạm dừng',
             'address' => 'nullable|string|max:500',
             'birthday' => 'nullable|date|before:today',
-            'gender' => 'nullable|in:Nam,Nữ,Khác'
+            'gender' => 'nullable|in:Nam,Nữ,Khác',
+            'avatar' => 'nullable|file|image|max:5120',
+            'hinhdaidien' => 'nullable|url',
+            'gioithieu' => 'nullable|string|max:2000'
         ]);
 
         if ($validator->fails()) {
@@ -2527,6 +2583,36 @@ class AuthController extends Controller
                 }
             }
 
+            // Xử lý upload ảnh đại diện
+            if ($request->hasFile('avatar')) {
+                try {
+                    $client = $this->makeCloudinaryClient();
+                    $publicId = 'consultants/avatars/consultant_' . $consultant->idnguoidung;
+                    $uploadResult = $client->uploadApi()->upload(
+                        $request->file('avatar')->getRealPath(),
+                        [
+                            'public_id' => $publicId,
+                            'overwrite' => true,
+                            'resource_type' => 'image',
+                            'transformation' => [
+                                ['width' => 600, 'height' => 600, 'crop' => 'fill', 'gravity' => 'face'],
+                                ['quality' => 'auto', 'fetch_format' => 'auto'],
+                            ],
+                        ]
+                    );
+                    $consultant->hinhdaidien = $uploadResult['secure_url'] ?? $consultant->hinhdaidien;
+                } catch (\Exception $cloudError) {
+                    \Log::error('Upload avatar failed: ' . $cloudError->getMessage());
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Không thể upload ảnh đại diện lên Cloudinary',
+                        'error' => $cloudError->getMessage(),
+                    ], 500);
+                }
+            } elseif ($request->filled('hinhdaidien')) {
+                $consultant->hinhdaidien = $request->hinhdaidien;
+            }
+            
             // Cập nhật thông tin
             $updateData = [];
             if ($request->has('name')) $updateData['hoten'] = $request->name;
@@ -2537,6 +2623,7 @@ class AuthController extends Controller
             if ($request->has('address')) $updateData['diachi'] = $request->address;
             if ($request->has('birthday')) $updateData['ngaysinh'] = $request->birthday;
             if ($request->has('gender')) $updateData['gioitinh'] = $request->gender;
+            if ($request->has('gioithieu')) $updateData['gioithieu'] = $request->gioithieu;
             
             $updateData['ngaycapnhat'] = now();
 

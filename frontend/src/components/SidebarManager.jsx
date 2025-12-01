@@ -10,6 +10,15 @@ const Item = ({ to, children }) => (
   >{children}</NavLink>
 );
 
+const Section = ({ title, children }) => (
+  <div className="mb-6">
+    <div className="mb-2 font-semibold opacity-90">{title}</div>
+    <div className="flex flex-col gap-2">
+      {children}
+    </div>
+  </div>
+);
+
 export default function SidebarManager() {
   return (
     <aside className="w-72 bg-primary-700 text-white min-h-screen p-4 sticky top-0">
@@ -19,14 +28,19 @@ export default function SidebarManager() {
           <span className="font-bold text-white">Hoa Học Trò</span>
         </Link>
       </div>
-      <div className="mb-4 font-semibold opacity-90">Quản lý chung</div>
-      <div className="flex flex-col gap-2">
+      <Section title="Quản lý chung">
         <Item to="/manager">Tổng quan</Item>
-        <Item to="/manager/users">Người dùng & quyền</Item>
-        <Item to="/manager/logs">Nhật ký hệ thống</Item>
-        <Item to="/manager/settings">Cấu hình</Item>
-        <Item to="/manager/reports">Báo cáo</Item>
-      </div>
+      </Section>
+      <Section title="Quản lý tài khoản thí sinh">
+        <Item to="/manager/students">Quản lý thí sinh</Item>
+      </Section>
+      <Section title="Quản lý nhân sự">
+        <Item to="/manager/staff">Quản lý nhân sự</Item>
+        <Item to="/manager/consultant-calendar">Lịch tư vấn</Item>
+      </Section>
+      <Section title="Quản lý nội dung">
+        <Item to="/manager/news-approval">Phê duyệt tin tuyển sinh</Item>
+      </Section>
     </aside>
   );
 }

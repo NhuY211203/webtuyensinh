@@ -31,6 +31,7 @@ export default function Analysis() {
   const [stackedBarData, setStackedBarData] = useState([]);
   const [scatterData, setScatterData] = useState([]);
   const [groupedBarData, setGroupedBarData] = useState([]);
+  const [dgnlExamSummary, setDgnlExamSummary] = useState([]);
   
   // Filters
   const [selectedYear, setSelectedYear] = useState("2024");
@@ -171,6 +172,68 @@ export default function Analysis() {
     }
   };
 
+  // DGNL practice results analysis
+  const loadDgnlAnalysis = async () => {
+    try {
+      const [examsRes, attemptsRes] = await Promise.all([
+        fetch("http://localhost:8000/api/kythi-dgnl/exams"),
+        fetch("http://localhost:8000/api/kythi-dgnl/attempts"),
+      ]);
+      const examsJson = await examsRes.json();
+      const attemptsJson = await attemptsRes.json();
+
+      if (!examsJson.success || !attemptsJson.success) {
+        return;
+      }
+
+      const examsById = {};
+      (examsJson.data || []).forEach((exam) => {
+        examsById[exam.idkythi] = exam;
+      });
+
+      const summaryMap = {};
+      (attemptsJson.data || []).forEach((att) => {
+        const id = att.idkythi;
+        if (!id) return;
+        if (!summaryMap[id]) {
+          const exam = examsById[id];
+          summaryMap[id] = {
+            idkythi: id,
+            tenkythi: exam?.tenkythi || `Kỳ thi ${id}`,
+            count: 0,
+            totalScore: 0,
+            maxScore: null,
+            minScore: null,
+          };
+        }
+        const s = Number(att.tong_diem) || 0;
+        const item = summaryMap[id];
+        item.count += 1;
+        item.totalScore += s;
+        item.maxScore = item.maxScore === null ? s : Math.max(item.maxScore, s);
+        item.minScore = item.minScore === null ? s : Math.min(item.minScore, s);
+      });
+
+      const summary = Object.values(summaryMap).map((item) => {
+        const avg = item.count ? item.totalScore / item.count : 0;
+        return {
+          ...item,
+          avgScore: Number(avg.toFixed(1)),
+          tenkythiShort:
+            item.tenkythi && item.tenkythi.length > 32
+              ? item.tenkythi.slice(0, 32) + "..."
+              : item.tenkythi,
+        };
+      });
+
+      summary.sort((a, b) => b.count - a.count);
+      setDgnlExamSummary(summary);
+    } catch (error) {
+      console.error("Failed to load DGNL analysis", error);
+      // Không cần toast quá ồn, chỉ log nếu lỗi
+    }
+  };
+
   useEffect(() => {
     setLoading(true);
     Promise.all([
@@ -182,6 +245,7 @@ export default function Analysis() {
       loadEmploymentData(),
       loadScoreComparison(),
       loadGroupedBarData(),
+      loadDgnlAnalysis(),
     ]).finally(() => setLoading(false));
   }, [selectedYear, selectedMajor, selectedUniversity]);
 
@@ -412,6 +476,86 @@ export default function Analysis() {
             </BarChart>
           </ResponsiveContainer>
         </div>
+      </div>
+
+      {/* Section 4: Phân tích kết quả thi thử ĐGNL */}
+      <div className="card p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">📊 Phân tích kết quả thi thử ĐGNL</h2>
+        </div>
+
+        {dgnlExamSummary.length === 0 ? (
+          <p className="text-sm text-gray-500">
+            Chưa có dữ liệu lượt làm bài ĐGNL nào được ghi nhận từ hệ thống thi thử. Khi thí sinh
+            làm bài trên mục "Luyện thi ĐGNL", kết quả sẽ được lưu và hiển thị tại đây.
+          </p>
+        ) : (
+          <>
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-base font-medium mb-3">
+                  Điểm trung bình theo từng kỳ thi ĐGNL
+                </h3>
+                <ResponsiveContainer width="100%" height={320}>
+                  <BarChart
+                    data={dgnlExamSummary}
+                    margin={{ top: 20, right: 20, bottom: 80, left: 20 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="tenkythiShort"
+                      angle={-30}
+                      textAnchor="end"
+                      interval={0}
+                      height={70}
+                    />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="avgScore" name="Điểm TB" fill="#34d399" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div>
+                <h3 className="text-base font-medium mb-3">
+                  Thống kê tổng quan lượt thi thử ĐGNL
+                </h3>
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Kỳ thi</th>
+                        <th className="px-3 py-2 text-center">Số lượt</th>
+                        <th className="px-3 py-2 text-center">Điểm TB</th>
+                        <th className="px-3 py-2 text-center">Cao nhất</th>
+                        <th className="px-3 py-2 text-center">Thấp nhất</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dgnlExamSummary.map((item) => (
+                        <tr key={item.idkythi} className="border-t">
+                          <td className="px-3 py-2">
+                            <div className="font-medium">{item.tenkythi}</div>
+                            <div className="text-xs text-gray-500">ID: {item.idkythi}</div>
+                          </td>
+                          <td className="px-3 py-2 text-center">{item.count}</td>
+                          <td className="px-3 py-2 text-center">{item.avgScore}</td>
+                          <td className="px-3 py-2 text-center">
+                            {item.maxScore !== null ? item.maxScore : "-"}
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            {item.minScore !== null ? item.minScore : "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Section 2: Dự báo Điểm chuẩn Đầu vào */}

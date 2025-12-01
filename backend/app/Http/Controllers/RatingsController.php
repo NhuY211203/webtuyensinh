@@ -89,7 +89,8 @@ class RatingsController extends Controller
         $request->validate([
             'diemdanhgia' => 'nullable|numeric|min:1|max:5',
             'nhanxet' => 'nullable|string',
-            'an_danh' => 'nullable|integer|in:0,1'
+            'an_danh' => 'nullable|integer|in:0,1',
+            'trangthai' => 'nullable|integer|in:0,1'
         ]);
 
         $rating = DanhGiaLichTuVan::find($id);
@@ -97,15 +98,19 @@ class RatingsController extends Controller
             return response()->json(['success' => false, 'message' => 'Không tìm thấy đánh giá'], 404);
         }
 
-        // Only owner can update
+        // Only owner can update content; staff may toggle visibility via trangthai
         $userId = (int) ($request->user()->idnguoidung ?? $request->input('idnguoidat'));
-        if ($userId && $rating->idnguoidat != $userId) {
+        $isVisibilityChangeOnly = $request->has('trangthai') && !$request->has('diemdanhgia') && !$request->has('nhanxet') && !$request->has('an_danh');
+        if (!$isVisibilityChangeOnly && $userId && $rating->idnguoidat != $userId) {
             return response()->json(['success' => false, 'message' => 'Không có quyền sửa đánh giá này'], 403);
         }
 
         $rating->diemdanhgia = $request->input('diemdanhgia', $rating->diemdanhgia);
         $rating->nhanxet = $request->input('nhanxet', $rating->nhanxet);
         $rating->an_danh = $request->integer('an_danh', $rating->an_danh ?? 0);
+        if ($request->has('trangthai')) {
+            $rating->trangthai = $request->integer('trangthai', $rating->trangthai ?? 1);
+        }
         $rating->ngaycapnhat = Carbon::now();
         $rating->save();
 
@@ -120,17 +125,25 @@ class RatingsController extends Controller
             return response()->json(['success' => false, 'message' => 'Thiếu consultant_id'], 400);
         }
 
+        $includeHidden = (int) $request->query('include_hidden', 0);
+
         // Lấy tất cả lịch tư vấn của tư vấn viên này đã hoàn thành và có đánh giá
-        $ratings = DB::table('danhgia_lichtuvan')
+        $query = DB::table('danhgia_lichtuvan')
             ->join('lichtuvan', 'danhgia_lichtuvan.idlichtuvan', '=', 'lichtuvan.idlichtuvan')
             ->leftJoin('nguoidung', 'danhgia_lichtuvan.idnguoidat', '=', 'nguoidung.idnguoidung')
-            ->where('lichtuvan.idnguoidung', $consultantId)
-            ->where('danhgia_lichtuvan.trangthai', 1) // Chỉ lấy đánh giá đang hiển thị
+            ->where('lichtuvan.idnguoidung', $consultantId);
+
+        if (!$includeHidden) {
+            $query->where('danhgia_lichtuvan.trangthai', 1); // Chỉ lấy đánh giá đang hiển thị cho phía user
+        }
+
+        $ratings = $query
             ->select(
                 'danhgia_lichtuvan.iddanhgia',
                 'danhgia_lichtuvan.diemdanhgia',
                 'danhgia_lichtuvan.nhanxet',
                 'danhgia_lichtuvan.an_danh',
+                'danhgia_lichtuvan.trangthai',
                 'danhgia_lichtuvan.ngaydanhgia',
                 'nguoidung.hoten as nguoi_danh_gia'
             )
@@ -148,6 +161,7 @@ class RatingsController extends Controller
                 'diemdanhgia' => (float) $rating->diemdanhgia,
                 'nhanxet' => $rating->nhanxet,
                 'an_danh' => (int) ($rating->an_danh ?? 0),
+                'trangthai' => (int) ($rating->trangthai ?? 1),
                 'nguoi_danh_gia' => $rating->an_danh ? 'Người dùng ẩn danh' : ($rating->nguoi_danh_gia ?? 'Người dùng'),
                 'ngaydanhgia' => $rating->ngaydanhgia,
             ];

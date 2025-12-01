@@ -1,13 +1,20 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import api from "../../services/api";
 
-function RoleModal({ open, onClose, user, onSave, saving }) {
-  const [role, setRole] = useState(user?.vai_tro?.tenvaitro || "Thành viên");
+const DEFAULT_ROLE_OPTIONS = ["Thành viên", "Tư vấn viên", "Người phụ trách"];
+
+function RoleModal({ open, onClose, user, onSave, saving, roleOptions }) {
+  const options = useMemo(
+    () => (roleOptions && roleOptions.length ? roleOptions : DEFAULT_ROLE_OPTIONS),
+    [roleOptions]
+  );
+  const fallbackRole = user?.vai_tro?.tenvaitro || options[0] || DEFAULT_ROLE_OPTIONS[0];
+  const [role, setRole] = useState(fallbackRole);
   
   // Cập nhật role khi user thay đổi
   React.useEffect(() => {
-    setRole(user?.vai_tro?.tenvaitro || "Thành viên");
-  }, [user]);
+    setRole(user?.vai_tro?.tenvaitro || options[0] || DEFAULT_ROLE_OPTIONS[0]);
+  }, [user, options]);
   
   if (!open) return null;
   return (
@@ -20,10 +27,9 @@ function RoleModal({ open, onClose, user, onSave, saving }) {
           onChange={(e)=>setRole(e.target.value)}
           disabled={saving}
         >
-          <option value="Thành viên">Thành viên</option>
-          <option value="Tư vấn viên">Tư vấn viên</option>
-          <option value="Người phụ trách">Người phụ trách</option>
-          <option value="Admin">Admin</option>
+          {options.map(option => (
+            <option key={option} value={option}>{option}</option>
+          ))}
         </select>
         <div className="mt-4 text-right space-x-2">
           <button 
@@ -46,7 +52,7 @@ function RoleModal({ open, onClose, user, onSave, saving }) {
   );
 }
 
-function UserFormModal({ open, onClose, user, onSave, saving, roles, majorGroups }) {
+function UserFormModal({ open, onClose, user, onSave, saving, roles }) {
   const [formData, setFormData] = useState({
     email: '',
     hoten: '',
@@ -56,7 +62,6 @@ function UserFormModal({ open, onClose, user, onSave, saving, roles, majorGroups
     ngaysinh: '',
     gioitinh: '',
     idvaitro: '',
-    idnhomnganh: '',
     trangthai: 1,
   });
   const [errors, setErrors] = useState({});
@@ -73,7 +78,6 @@ function UserFormModal({ open, onClose, user, onSave, saving, roles, majorGroups
         ngaysinh: user.ngaysinh || '',
         gioitinh: user.gioitinh || '',
         idvaitro: user.idvaitro || '',
-        idnhomnganh: user.idnhomnganh || '',
         trangthai: user.trangthai ?? 1,
       });
     } else {
@@ -87,12 +91,20 @@ function UserFormModal({ open, onClose, user, onSave, saving, roles, majorGroups
         ngaysinh: '',
         gioitinh: '',
         idvaitro: '',
-        idnhomnganh: '',
         trangthai: 1,
       });
     }
     setErrors({});
   }, [user, open]);
+
+  useEffect(() => {
+    if (!user && open && roles && roles.length === 1) {
+      setFormData(prev => ({
+        ...prev,
+        idvaitro: roles[0].idvaitro
+      }));
+    }
+  }, [roles, open, user]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -245,33 +257,13 @@ function UserFormModal({ open, onClose, user, onSave, saving, roles, majorGroups
                 disabled={saving}
               >
                 <option value="">Chọn vai trò</option>
-                {roles.map(role => (
+                {(roles || []).map(role => (
                   <option key={role.idvaitro} value={role.idvaitro}>
                     {role.tenvaitro}
                   </option>
                 ))}
               </select>
               {errors.idvaitro && <p className="text-red-500 text-xs mt-1">{errors.idvaitro}</p>}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nhóm ngành
-              </label>
-              <select
-                name="idnhomnganh"
-                value={formData.idnhomnganh}
-                onChange={handleChange}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500"
-                disabled={saving}
-              >
-                <option value="">Chọn nhóm ngành (tùy chọn)</option>
-                {majorGroups.map(group => (
-                  <option key={group.idnhomnganh} value={group.idnhomnganh}>
-                    {group.tennhom || group.ten_nhom || group.name}
-                  </option>
-                ))}
-              </select>
             </div>
 
             <div>
@@ -328,9 +320,17 @@ function UserFormModal({ open, onClose, user, onSave, saving, roles, majorGroups
   );
 }
 
-export default function ManagerUsers() {
+export default function ManagerUsers({
+  title = "Người dùng & quyền",
+  addButtonLabel = "+ Thêm người dùng",
+  allowedRoles = null,
+}) {
+  const initialRoleFilter = !allowedRoles
+    ? "Tất cả"
+    : (allowedRoles.length === 1 ? allowedRoles[0] : "Tất cả");
+
   const [query, setQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState("Tất cả");
+  const [roleFilter, setRoleFilter] = useState(initialRoleFilter);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -341,9 +341,21 @@ export default function ManagerUsers() {
   const [showUserForm, setShowUserForm] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [roles, setRoles] = useState([]);
-  const [majorGroups, setMajorGroups] = useState([]);
 
-  // Load roles and major groups from API
+  useEffect(() => {
+    const nextFilter = !allowedRoles
+      ? "Tất cả"
+      : (allowedRoles.length === 1 ? allowedRoles[0] : "Tất cả");
+    setRoleFilter(nextFilter);
+  }, [allowedRoles]);
+
+  const showRoleFilter = !allowedRoles || allowedRoles.length > 1;
+  const roleSelectOptions = !allowedRoles
+    ? ["Tất cả", "Thành viên", "Tư vấn viên", "Người phụ trách"]
+    : (allowedRoles.length > 1 ? ["Tất cả", ...allowedRoles] : allowedRoles);
+  const roleModalOptions = allowedRoles && allowedRoles.length ? allowedRoles : undefined;
+
+  // Load roles from API
   useEffect(() => {
     async function loadRoles() {
       try {
@@ -359,97 +371,96 @@ export default function ManagerUsers() {
       }
     }
 
-    async function loadMajorGroups() {
-      try {
-        const response = await fetch('/api/nhomnganh').catch(() => 
-          fetch('http://127.0.0.1:8000/api/nhomnganh')
-        );
-        if (response.ok) {
-          const groupsData = await response.json();
-          // API có thể trả về array hoặc object với data property
-          const groups = Array.isArray(groupsData) ? groupsData : (groupsData.data || []);
-          setMajorGroups(groups);
-        }
-      } catch (err) {
-        console.error('Error loading major groups:', err);
-      }
-    }
-
     loadRoles();
-    loadMajorGroups();
   }, []);
 
-  // Load users from API
-  useEffect(() => {
-    let isMounted = true;
-    
-    async function loadUsers() {
+  // Hàm load users để có thể gọi lại
+  const loadUsers = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      let response;
       try {
-        setLoading(true);
-        setError(null);
-        
-        let response;
+        console.log('Trying proxy connection for users...');
+        // Tăng perPage lên 1000 để load tất cả users
+        response = await fetch("/api/users?perPage=1000");
+        console.log('Proxy response status:', response.status);
+      } catch (error) {
+        console.log('Proxy failed, trying direct connection:', error);
         try {
-          console.log('Trying proxy connection for users...');
-          response = await fetch("/api/users");
-          console.log('Proxy response status:', response.status);
-        } catch (error) {
-          console.log('Proxy failed, trying direct connection:', error);
-          try {
-            response = await fetch("http://127.0.0.1:8000/api/users");
-            console.log('Direct connection response status:', response.status);
-          } catch (directError) {
-            console.error('Both connections failed:', directError);
-            throw directError;
-          }
+          // Tăng perPage lên 1000 để load tất cả users
+          response = await fetch("http://127.0.0.1:8000/api/users?perPage=1000");
+          console.log('Direct connection response status:', response.status);
+        } catch (directError) {
+          console.error('Both connections failed:', directError);
+          throw directError;
         }
-        
-        if (!isMounted) return;
-        
-        if (response.ok) {
-          const result = await response.json();
-          console.log('Users response:', result);
-          if (result.success) {
-            setData(result.data);
-            setPagination({
-              current_page: result.current_page,
-              last_page: result.last_page,
-              total: result.total
-            });
-          } else {
-            console.log('API returned success=false:', result);
-            setError(result.message || "Không thể tải danh sách người dùng");
-          }
-        } else {
-          console.log('Response not ok, status:', response.status);
-          try {
-            const errorResult = await response.json();
-            console.log('Error response:', errorResult);
-            setError(errorResult.message || "Không thể tải danh sách người dùng");
-          } catch (parseError) {
-            console.log('Parse error:', parseError);
-            setError("Không thể kết nối đến server");
-          }
-        }
-      } catch (err) {
-        if (!isMounted) return;
-        console.error("Error loading users:", err);
-        setError("Lỗi kết nối");
-      } finally {
-        if (isMounted) setLoading(false);
       }
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Users response:', result);
+        if (result.success) {
+          setData(result.data);
+          setPagination({
+            current_page: result.current_page,
+            last_page: result.last_page,
+            total: result.total
+          });
+        } else {
+          console.log('API returned success=false:', result);
+          setError(result.message || "Không thể tải danh sách người dùng");
+        }
+      } else {
+        console.log('Response not ok, status:', response.status);
+        try {
+          const errorResult = await response.json();
+          console.log('Error response:', errorResult);
+          setError(errorResult.message || "Không thể tải danh sách người dùng");
+        } catch (parseError) {
+          console.log('Parse error:', parseError);
+          setError("Không thể kết nối đến server");
+        }
+      }
+    } catch (err) {
+      console.error("Error loading users:", err);
+      setError("Lỗi kết nối");
+    } finally {
+      setLoading(false);
     }
-    
-    loadUsers();
-    return () => { isMounted = false; };
   }, []);
+
+  // Load users from API khi component mount
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
+
+  const availableRoles = useMemo(() => {
+    if (!Array.isArray(roles)) return [];
+    return roles.filter(role => {
+      if (role.tenvaitro === 'Vãng lai' || role.tenvaitro === 'Admin') return false;
+      if (allowedRoles && allowedRoles.length) {
+        return allowedRoles.includes(role.tenvaitro);
+      }
+      return role.tenvaitro !== 'Tư vấn viên';
+    });
+  }, [roles, allowedRoles]);
 
   const filtered = useMemo(() => {
-    return data.filter(u =>
-      (roleFilter==="Tất cả" || u.vai_tro?.tenvaitro===roleFilter) &&
-      (u.hoten?.toLowerCase().includes(query.toLowerCase()) || u.email?.toLowerCase().includes(query.toLowerCase()))
-    );
-  }, [data, query, roleFilter]);
+    const keyword = query.toLowerCase();
+    return data.filter(u => {
+      const roleName = u.vai_tro?.tenvaitro;
+      const matchesAllowed = !allowedRoles || allowedRoles.includes(roleName);
+      const matchesRoleSelection = showRoleFilter
+        ? (roleFilter === "Tất cả" || roleName === roleFilter)
+        : true;
+      const matchesQuery =
+        (u.hoten?.toLowerCase() || "").includes(keyword) ||
+        (u.email?.toLowerCase() || "").includes(keyword);
+      return matchesAllowed && matchesRoleSelection && matchesQuery;
+    });
+  }, [data, query, allowedRoles, roleFilter, showRoleFilter]);
 
   const saveRole = async (role) => {
     try {
@@ -578,12 +589,6 @@ export default function ManagerUsers() {
       }
       
       // Convert empty string to null for optional fields
-      if (userData.idnhomnganh === '') {
-        userData.idnhomnganh = null;
-      } else if (userData.idnhomnganh) {
-        userData.idnhomnganh = parseInt(userData.idnhomnganh);
-      }
-      
       if (userData.sodienthoai === '') {
         userData.sodienthoai = null;
       }
@@ -600,55 +605,105 @@ export default function ManagerUsers() {
         userData.gioitinh = null;
       }
       
-      // Convert idvaitro to integer
+      // Convert idvaitro to integer (required for create)
       if (userData.idvaitro) {
         userData.idvaitro = parseInt(userData.idvaitro);
+      } else if (!editingUser) {
+        // If creating new user and no role selected, show error
+        setMessage({ type: 'error', text: 'Vui lòng chọn vai trò' });
+        setSaving(false);
+        return;
       }
       
       // Convert trangthai to integer
       userData.trangthai = parseInt(userData.trangthai);
 
-      let response;
-      if (editingUser) {
-        // Update user
-        userData.id = editingUser.idnguoidung;
-        try {
-          response = await api.put('/users', userData);
-        } catch (error) {
-          // Fallback to direct fetch
-          response = await fetch('http://127.0.0.1:8000/api/users', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(userData)
-          }).then(r => r.json());
-        }
-      } else {
-        // Create user
-        try {
-          response = await api.post('/users', userData);
-        } catch (error) {
-          // Fallback to direct fetch
-          response = await fetch('http://127.0.0.1:8000/api/users', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(userData)
-          }).then(r => r.json());
-        }
-      }
-
-      if (response.success) {
-        setMessage({ type: 'success', text: editingUser ? 'Cập nhật người dùng thành công!' : 'Tạo người dùng thành công!' });
-        setShowUserForm(false);
-        setEditingUser(null);
-        // Reload users
-        window.location.reload();
-      } else {
-        // Handle validation errors
-        if (response.errors) {
-          setMessage({ type: 'error', text: 'Vui lòng kiểm tra lại thông tin đã nhập' });
+      let responseData;
+      
+      try {
+        if (editingUser) {
+          // Update user
+          userData.id = editingUser.idnguoidung;
+          try {
+            responseData = await api.put('/users', userData);
+          } catch (error) {
+            // Fallback to direct fetch
+            const response = await fetch('http://127.0.0.1:8000/api/users', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(userData)
+            });
+            responseData = await response.json();
+            
+            if (!response.ok) {
+              // Response không thành công, nhưng đã parse được JSON
+              throw responseData;
+            }
+          }
         } else {
-          setMessage({ type: 'error', text: response.message || 'Có lỗi xảy ra' });
+          // Create user
+          try {
+            responseData = await api.post('/users', userData);
+          } catch (error) {
+            // Fallback to direct fetch
+            const response = await fetch('http://127.0.0.1:8000/api/users', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(userData)
+            });
+            responseData = await response.json();
+            
+            if (!response.ok) {
+              // Response không thành công, nhưng đã parse được JSON
+              throw responseData;
+            }
+          }
         }
+
+        // Kiểm tra success
+        if (responseData && responseData.success) {
+          setMessage({ 
+            type: 'success', 
+            text: editingUser ? 'Cập nhật người dùng thành công!' : 'Tạo người dùng thành công!' 
+          });
+          setShowUserForm(false);
+          setEditingUser(null);
+          // Reload lại danh sách users
+          await loadUsers();
+        } else {
+          // Handle validation errors
+          let errorMessage = 'Có lỗi xảy ra khi lưu người dùng';
+          
+          if (responseData) {
+            if (responseData.errors) {
+              // Lấy thông báo lỗi đầu tiên từ validation errors
+              const firstError = Object.values(responseData.errors)[0];
+              errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
+            } else if (responseData.message) {
+              errorMessage = responseData.message;
+            }
+          }
+          
+          setMessage({ type: 'error', text: errorMessage });
+        }
+      } catch (apiError) {
+        // Xử lý lỗi từ API
+        let errorMessage = 'Có lỗi xảy ra khi lưu người dùng';
+        
+        if (apiError && typeof apiError === 'object') {
+          if (apiError.errors) {
+            const firstError = Object.values(apiError.errors)[0];
+            errorMessage = Array.isArray(firstError) ? firstError[0] : firstError;
+          } else if (apiError.message) {
+            errorMessage = apiError.message;
+          }
+        } else if (typeof apiError === 'string') {
+          errorMessage = apiError;
+        } else if (apiError && apiError.message) {
+          errorMessage = apiError.message;
+        }
+        
+        setMessage({ type: 'error', text: errorMessage });
       }
     } catch (error) {
       console.error('Error saving user:', error);
@@ -723,7 +778,7 @@ export default function ManagerUsers() {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Người dùng & quyền</h1>
+        <h1 className="text-2xl font-bold">{title}</h1>
         <button
           onClick={() => {
             setEditingUser(null);
@@ -731,7 +786,7 @@ export default function ManagerUsers() {
           }}
           className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700"
         >
-          + Thêm người dùng
+          {addButtonLabel}
         </button>
       </div>
 
@@ -742,17 +797,17 @@ export default function ManagerUsers() {
           onChange={e=>setQuery(e.target.value)}
           className="rounded-xl border border-gray-200 px-3 py-2 focus:ring-2 focus:ring-teal-500"
         />
-        <select
-          className="rounded-xl border border-gray-200 px-3 py-2 focus:ring-2 focus:ring-teal-500"
-          value={roleFilter}
-          onChange={e=>setRoleFilter(e.target.value)}
-        >
-          <option>Tất cả</option>
-          <option>Thành viên</option>
-          <option>Tư vấn viên</option>
-          <option>Người phụ trách</option>
-          <option>Admin</option>
-        </select>
+        {showRoleFilter && (
+          <select
+            className="rounded-xl border border-gray-200 px-3 py-2 focus:ring-2 focus:ring-teal-500"
+            value={roleFilter}
+            onChange={e=>setRoleFilter(e.target.value)}
+          >
+            {roleSelectOptions.map(option => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {loading ? (
@@ -844,6 +899,7 @@ export default function ManagerUsers() {
         onClose={()=>setEditing(null)} 
         onSave={saveRole} 
         saving={saving}
+        roleOptions={roleModalOptions}
       />
 
       <UserFormModal
@@ -855,24 +911,26 @@ export default function ManagerUsers() {
         }}
         onSave={handleSaveUser}
         saving={saving}
-        roles={roles}
-        majorGroups={majorGroups}
+        roles={availableRoles}
       />
       
       {/* Thông báo */}
       {message && (
-        <div className={`fixed top-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg ${
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg animate-slide-in-right ${
           message.type === 'success' 
             ? 'bg-green-100 text-green-800 border border-green-200' 
             : 'bg-red-100 text-red-800 border border-red-200'
         }`}>
-          {message.text}
-          <button 
-            onClick={() => setMessage(null)}
-            className="ml-2 text-lg font-bold hover:opacity-70"
-          >
-            ×
-          </button>
+          <div className="flex items-center">
+            <span className="flex-1">{message.text}</span>
+            <button 
+              onClick={() => setMessage(null)}
+              className="ml-3 text-lg font-bold hover:opacity-70 focus:outline-none"
+              aria-label="Đóng thông báo"
+            >
+              ×
+            </button>
+          </div>
         </div>
       )}
     </div>

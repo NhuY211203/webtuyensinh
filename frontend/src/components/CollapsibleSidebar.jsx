@@ -164,6 +164,9 @@ export default function CollapsibleSidebar({ collapsed, setCollapsed, mobileOpen
           <SubMenuItem to="/dashboard/search-trends">Tra cứu xu hướng ngành học</SubMenuItem>
           <SubMenuItem to="/dashboard/historic-scores">Tra cứu điểm chuẩn nhiều năm</SubMenuItem>
           <SubMenuItem to="/dashboard/admission-info">Tra cứu thông tin tuyển sinh</SubMenuItem>
+          <SubMenuItem to="/dashboard/admission-projects">Tra cứu đề án tuyển sinh</SubMenuItem>
+          <SubMenuItem to="/dashboard/calculate-transcript-score">Tính điểm xét học bạ THPT</SubMenuItem>
+          <SubMenuItem to="/dashboard/calculate-graduation-score">Tính điểm tốt nghiệp THPT</SubMenuItem>
         </CollapsibleSection>
 
         {/* HỒ SƠ */}

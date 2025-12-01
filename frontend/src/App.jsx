@@ -27,11 +27,14 @@ import Payments from "./pages/dashboard/Payments.jsx";
 import Appointments from "./pages/dashboard/Appointments.jsx";
 import Certificates from "./pages/dashboard/Certificates.jsx";
 import AdmissionInfo from "./pages/dashboard/AdmissionInfo.jsx";
+import AdmissionProjects from "./pages/dashboard/AdmissionProjects.jsx";
 import RewardPoints from "./pages/dashboard/RewardPoints.jsx";
 import CareerTest from "./pages/dashboard/CareerTest.jsx";
 import DGNLPractice from "./pages/dashboard/DGNLPractice.jsx";
 import DGNLExamDetail from "./pages/dashboard/DGNLExamDetail.jsx";
 import AdvisingFAQ from "./pages/dashboard/AdvisingFAQ.jsx";
+import CalculateTranscriptScore from "./pages/dashboard/CalculateTranscriptScore.jsx";
+import CalculateGraduationScore from "./pages/dashboard/CalculateGraduationScore.jsx";
 
 import ConsultantLayout from "./layouts/ConsultantLayout.jsx";
 import ConsultantOverview from "./pages/consultant/Overview.jsx";
@@ -48,6 +51,7 @@ import StaffScheduleChanges from "./pages/staff/ScheduleChangeRequests.jsx";
 import StaffConsultationSchedules from "./pages/staff/ConsultationSchedules.jsx";
 import StaffStatistics from "./pages/staff/Statistics.jsx";
 import NewsApproval from "./pages/staff/NewsApproval.jsx";
+import StaffReviews from "./pages/staff/Reviews.jsx";
 
 import ManagerLayout from "./layouts/ManagerLayout.jsx";
 import ManagerOverview from "./pages/manager/Overview.jsx";
@@ -55,6 +59,10 @@ import ManagerUsers from "./pages/manager/Users.jsx";
 import ManagerLogs from "./pages/manager/Logs.jsx";
 import ManagerSettings from "./pages/manager/Settings.jsx";
 import ManagerReports from "./pages/manager/Reports.jsx";
+import ManagerStudents from "./pages/manager/Students.jsx";
+import ManagerStaff from "./pages/manager/Staff.jsx";
+import ManagerNewsApproval from "./pages/manager/NewsApproval.jsx";
+import ConsultantCalendar from "./pages/manager/ConsultantCalendar.jsx";
 
 import AnalystLayout from "./layouts/AnalystLayout.jsx";
 import DataManagement from "./pages/analyst/DataManagement.jsx";
@@ -63,7 +71,11 @@ import UniversityManagement from "./pages/analyst/UniversityManagement.jsx";
 import MajorManagement from "./pages/analyst/MajorManagement.jsx";
 import AdmissionMajorManagement from "./pages/analyst/AdmissionMajorManagement.jsx";
 import AdmissionMethodManagement from "./pages/analyst/AdmissionMethodManagement.jsx";
+import AdmissionProjectManagement from "./pages/analyst/AdmissionProjectManagement.jsx";
+import AdmissionProjectMethods from "./pages/analyst/AdmissionProjectMethods.jsx";
+import AdmissionMethodDetail from "./pages/analyst/AdmissionMethodDetail.jsx";
 import Analysis from "./pages/analyst/Analysis.jsx";
+import DGNLAnalysis from "./pages/analyst/DGNLAnalysis.jsx";
 
 export default function App() {
   const location = useLocation();
@@ -105,11 +117,14 @@ export default function App() {
             <Route path="appointments" element={<Appointments />} />
             <Route path="certificates" element={<Certificates />} />
             <Route path="admission-info" element={<AdmissionInfo />} />
+            <Route path="admission-projects" element={<AdmissionProjects />} />
             <Route path="reward-points" element={<RewardPoints />} />
             <Route path="career-test" element={<CareerTest />} />
             <Route path="dgnl-practice" element={<DGNLPractice />} />
             <Route path="dgnl-practice/:id" element={<DGNLExamDetail />} />
             <Route path="advising-chatbot" element={<AdvisingFAQ />} />
+            <Route path="calculate-transcript-score" element={<CalculateTranscriptScore />} />
+            <Route path="calculate-graduation-score" element={<CalculateGraduationScore />} />
             <Route path="news" element={<News />} />
           </Route>
 
@@ -136,7 +151,7 @@ export default function App() {
             <Route path="assign" element={<StaffAssign />} />
             <Route path="schedule-changes" element={<StaffScheduleChanges />} />
             <Route path="consultation-schedules" element={<StaffConsultationSchedules />} />
-            <Route path="news-approval" element={<NewsApproval />} />
+            <Route path="reviews" element={<StaffReviews />} />
             <Route path="statistics" element={<StaffStatistics />} />
             <Route path="notifications" element={<StaffNotifications />} />
             <Route path="consultants" element={<StaffExperts />} />
@@ -151,6 +166,10 @@ export default function App() {
           }>
             <Route index element={<ManagerOverview />} />
             <Route path="users" element={<ManagerUsers />} />
+            <Route path="students" element={<ManagerStudents />} />
+            <Route path="staff" element={<ManagerStaff />} />
+            <Route path="consultant-calendar" element={<ConsultantCalendar />} />
+            <Route path="news-approval" element={<ManagerNewsApproval />} />
             <Route path="logs" element={<ManagerLogs />} />
             <Route path="settings" element={<ManagerSettings />} />
             <Route path="reports" element={<ManagerReports />} />
@@ -168,8 +187,12 @@ export default function App() {
           <Route path="university" element={<UniversityManagement />} />
           <Route path="majors" element={<MajorManagement />} />
           <Route path="admission-majors" element={<AdmissionMajorManagement />} />
+          <Route path="admission-projects" element={<AdmissionProjectManagement />} />
           <Route path="admission-methods" element={<AdmissionMethodManagement />} />
+          <Route path="admission-projects/:id/methods" element={<AdmissionProjectMethods />} />
+          <Route path="admission-methods/:methodId" element={<AdmissionMethodDetail />} />
           <Route path="analysis" element={<Analysis />} />
+          <Route path="analysis-dgnl" element={<DGNLAnalysis />} />
         </Route>
         </Routes>
       </main>

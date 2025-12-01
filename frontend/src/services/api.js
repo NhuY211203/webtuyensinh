@@ -26,7 +26,16 @@ class ApiService {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Có lỗi xảy ra');
+        // Tạo error object với thông tin chi tiết
+        const error = new Error(data.message || 'Có lỗi xảy ra');
+        error.response = { data, status: response.status };
+        console.error('API Error Details:', {
+          message: data.message,
+          errors: data.errors,
+          debug: data.debug,
+          status: response.status
+        });
+        throw error;
       }
 
       return data;
@@ -62,6 +71,192 @@ class ApiService {
   // DELETE request
   async delete(endpoint) {
     return this.request(endpoint, { method: 'DELETE' });
+  }
+
+  // Catalog helpers
+  async getSchools(params = {}) {
+    return this.get('/truongdaihoc', params);
+  }
+
+  // Admission project APIs
+  async getAdmissionProjects(params = {}) {
+    return this.get('/de-an-tuyen-sinh', params);
+  }
+
+  async getAdmissionProjectDetail(id) {
+    return this.get(`/de-an-tuyen-sinh/${id}`);
+  }
+
+  async createAdmissionProject(data) {
+    return this.post('/de-an-tuyen-sinh', data);
+  }
+
+  async updateAdmissionProject(id, data) {
+    return this.put(`/de-an-tuyen-sinh/${id}`, data);
+  }
+
+  async deleteAdmissionProject(id) {
+    return this.delete(`/de-an-tuyen-sinh/${id}`);
+  }
+
+  async getAdmissionMethods(params = {}) {
+    return this.get('/phuong-thuc-tuyen-sinh', params);
+  }
+
+  async getAdmissionMethodDetail(id) {
+    return this.get(`/phuong-thuc-tuyen-sinh/${id}`);
+  }
+
+  // University majors (nganh_truong)
+  async getUniversityMajors(params = {}) {
+    return this.get('/nganh-truong', params);
+  }
+
+  // Method majors (nganh_theo_phuong_thuc)
+  async getMethodMajors(methodId, params = {}) {
+    return this.get('/nganh-theo-phuong-thuc', {
+      idphuong_thuc_chi_tiet: methodId,
+      ...params,
+    });
+  }
+
+  async createMethodMajor(data) {
+    return this.post('/nganh-theo-phuong-thuc', data);
+  }
+
+  async updateMethodMajor(id, data) {
+    return this.put(`/nganh-theo-phuong-thuc/${id}`, data);
+  }
+
+  async deleteMethodMajor(id) {
+    return this.delete(`/nganh-theo-phuong-thuc/${id}`);
+  }
+
+  // Subject combos (tohop_xettuyen)
+  async getSubjectCombos(params = {}) {
+    return this.get('/tohop-xettuyen', params);
+  }
+
+  // Ho so xet tuyen cho tung phuong thuc (ho_so_xet_tuyen)
+  async getMethodDocuments(params = {}) {
+    return this.get('/ho-so-xet-tuyen', params);
+  }
+
+  async createMethodDocument(data) {
+    return this.post('/ho-so-xet-tuyen', data);
+  }
+
+  async updateMethodDocument(id, data) {
+    return this.put(`/ho-so-xet-tuyen/${id}`, data);
+  }
+
+  async deleteMethodDocument(id) {
+    return this.delete(`/ho-so-xet-tuyen/${id}`);
+  }
+
+  // Bang quy doi diem ngoai ngu (bang_quy_doi_diem_ngoai_ngu)
+  async getLanguageConversions(params = {}) {
+    return this.get('/bang-quy-doi-diem-ngoai-ngu', params);
+  }
+
+  async createLanguageConversion(data) {
+    return this.post('/bang-quy-doi-diem-ngoai-ngu', data);
+  }
+
+  async updateLanguageConversion(id, data) {
+    return this.put(`/bang-quy-doi-diem-ngoai-ngu/${id}`, data);
+  }
+
+  async deleteLanguageConversion(id) {
+    return this.delete(`/bang-quy-doi-diem-ngoai-ngu/${id}`);
+  }
+
+  // Quy dinh diem uu tien de an (quy_dinh_diem_uu_tien_de_an)
+  async getMethodPriorityRules(params = {}) {
+    return this.get('/quy-dinh-diem-uu-tien-de-an', params);
+  }
+
+  async saveMethodPriorityRule(data) {
+    // Bảng này thường chỉ có 1 dòng / phương thức, dùng POST hoặc PUT tùy có id
+    if (data.idquy_dinh_de_an) {
+      const id = data.idquy_dinh_de_an;
+      const payload = { ...data };
+      delete payload.idquy_dinh_de_an;
+      return this.put(`/quy-dinh-diem-uu-tien-de-an/${id}`, payload);
+    }
+    return this.post('/quy-dinh-diem-uu-tien-de-an', data);
+  }
+
+  async deleteMethodPriorityRule(id) {
+    return this.delete(`/quy-dinh-diem-uu-tien-de-an/${id}`);
+  }
+
+  // Xet tuyen thang (xet_tuyen_thang)
+  async getDirectAdmissions(params = {}) {
+    return this.get('/xet-tuyen-thang', params);
+  }
+
+  async createDirectAdmission(data) {
+    return this.post('/xet-tuyen-thang', data);
+  }
+
+  async updateDirectAdmission(id, data) {
+    return this.put(`/xet-tuyen-thang/${id}`, data);
+  }
+
+  async deleteDirectAdmission(id) {
+    return this.delete(`/xet-tuyen-thang/${id}`);
+  }
+
+  // Thong tin bo sung phuong thuc (thong_tin_bo_sung_phuong_thuc)
+  async getMethodExtraInfos(params = {}) {
+    return this.get('/thong-tin-bo-sung-phuong-thuc', params);
+  }
+
+  async createMethodExtraInfo(data) {
+    return this.post('/thong-tin-bo-sung-phuong-thuc', data);
+  }
+
+  async updateMethodExtraInfo(id, data) {
+    return this.put(`/thong-tin-bo-sung-phuong-thuc/${id}`, data);
+  }
+
+  async deleteMethodExtraInfo(id) {
+    return this.delete(`/thong-tin-bo-sung-phuong-thuc/${id}`);
+  }
+
+  // Admission project methods (phuong_thuc_tuyen_sinh_chi_tiet)
+  async getProjectMethods(projectId) {
+    return this.get('/phuong-thuc-tuyen-sinh', { idde_an: projectId });
+  }
+
+  async createProjectMethod(data) {
+    return this.post('/phuong-thuc-tuyen-sinh', data);
+  }
+
+  async updateProjectMethod(id, data) {
+    return this.put(`/phuong-thuc-tuyen-sinh/${id}`, data);
+  }
+
+  async deleteProjectMethod(id) {
+    return this.delete(`/phuong-thuc-tuyen-sinh/${id}`);
+  }
+
+  // School introduction
+  async getSchoolIntroduction(params = {}) {
+    return this.get('/gioi-thieu-truong', params);
+  }
+
+  async createSchoolIntroduction(data) {
+    return this.post('/gioi-thieu-truong', data);
+  }
+
+  async updateSchoolIntroduction(id, data) {
+    return this.put(`/gioi-thieu-truong/${id}`, data);
+  }
+
+  async deleteSchoolIntroduction(id) {
+    return this.delete(`/gioi-thieu-truong/${id}`);
   }
 
   // Consultant APIs
@@ -180,6 +375,11 @@ class ApiService {
 
   async getConsultantRating(consultantId) {
     return this.get('/ratings/by-consultant', { consultant_id: consultantId });
+  }
+
+   // Ratings for staff (bao gồm cả nhận xét đang ẩn)
+  async getConsultantRatingForStaff(consultantId) {
+    return this.get('/ratings/by-consultant', { consultant_id: consultantId, include_hidden: 1 });
   }
 
   // Consultation notes APIs
@@ -365,6 +565,88 @@ class ApiService {
 
   async getRoles() {
     return this.get('/vaitro');
+  }
+
+  // Tính điểm xét học bạ APIs
+  async getPhuongThucXetHocBa(params = {}) {
+    return this.get('/tinh-diem-hoc-ba/phuong-thuc-xet-hoc-ba', params);
+  }
+
+  async getDoiTuongUuTien(params = {}) {
+    return this.get('/tinh-diem-hoc-ba/doi-tuong-uu-tien', params);
+  }
+
+  async getKhuVucUuTien(params = {}) {
+    return this.get('/tinh-diem-hoc-ba/khu-vuc-uu-tien', params);
+  }
+
+  async getMonHoc(params = {}) {
+    return this.get('/tinh-diem-hoc-ba/mon-hoc', params);
+  }
+
+  async getQuyDinhDiemUuTien(params = {}) {
+    return this.get('/tinh-diem-hoc-ba/quy-dinh-diem-uu-tien', params);
+  }
+
+  async getCauHinhMonNhanHeSo(params = {}) {
+    return this.get('/tinh-diem-hoc-ba/cau-hinh-mon-nhan-he-so', params);
+  }
+
+  async getDiemHocBa(params = {}) {
+    return this.get('/tinh-diem-hoc-ba/diem-hoc-ba', params);
+  }
+
+  async saveDiemHocBa(data) {
+    return this.post('/tinh-diem-hoc-ba/diem-hoc-ba', data);
+  }
+
+  async tinhDiemHocBa(data) {
+    return this.post('/tinh-diem-hoc-ba/tinh-diem', data);
+  }
+
+  async getKetQuaTinhDiem(params = {}) {
+    return this.get('/tinh-diem-hoc-ba/ket-qua', params);
+  }
+
+  // Tính điểm tốt nghiệp THPT APIs
+  async getMonThiTotNghiep(params = {}) {
+    return this.get('/tinh-diem-tot-nghiep/mon-thi-tot-nghiep', params);
+  }
+
+  async getMonHocTotNghiep(params = {}) {
+    return this.get('/tinh-diem-tot-nghiep/mon-hoc', params);
+  }
+
+  async getDiemThiTotNghiep(params = {}) {
+    return this.get('/tinh-diem-tot-nghiep/diem-thi-tot-nghiep', params);
+  }
+
+  async saveDiemThiTotNghiep(data) {
+    return this.post('/tinh-diem-tot-nghiep/diem-thi-tot-nghiep', data);
+  }
+
+  async getDiemMonHocTotNghiep(params = {}) {
+    return this.get('/tinh-diem-tot-nghiep/diem-mon-hoc', params);
+  }
+
+  async saveDiemMonHocTotNghiep(data) {
+    return this.post('/tinh-diem-tot-nghiep/diem-mon-hoc', data);
+  }
+
+  async getDiemKhuyenKhich(params = {}) {
+    return this.get('/tinh-diem-tot-nghiep/diem-khuyen-khich', params);
+  }
+
+  async saveDiemKhuyenKhich(data) {
+    return this.post('/tinh-diem-tot-nghiep/diem-khuyen-khich', data);
+  }
+
+  async tinhDiemTotNghiep(data) {
+    return this.post('/tinh-diem-tot-nghiep/tinh-diem', data);
+  }
+
+  async getKetQuaTinhDiemTotNghiep(params = {}) {
+    return this.get('/tinh-diem-tot-nghiep/ket-qua', params);
   }
 }
 

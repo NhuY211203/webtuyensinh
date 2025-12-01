@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Modal from "../../components/Modal";
 import Toast from "../../components/Toast";
+import api from "../../services/api";
 
 export default function UniversityManagement() {
-  const [activeTab, setActiveTab] = useState("universities"); // "universities" or "facilities"
+  const [activeTab, setActiveTab] = useState("universities"); // "universities" | "facilities" | "introduction"
   
   // Universities state
   const [universities, setUniversities] = useState([]);
@@ -56,6 +57,27 @@ export default function UniversityManagement() {
   // Form validation errors
   const [formErrors, setFormErrors] = useState({});
   const [facilityFormErrors, setFacilityFormErrors] = useState({});
+
+  // Introduction state (gioi_thieu_truong)
+  const [introLoading, setIntroLoading] = useState(false);
+  const [introUniversity, setIntroUniversity] = useState(null); // selected university for intro tab
+  const [introData, setIntroData] = useState({
+    ten_tieng_anh: "",
+    ma_truong: "",
+    ten_viet_tat: "",
+    dia_chi_day_du: "",
+    website: "",
+    lich_su: "",
+    su_menh: "",
+    thanh_tuu: "",
+    quan_he_quoc_te: "",
+    tam_nhin: "",
+    anh_dai_dien: "",
+  });
+  const [introRecordId, setIntroRecordId] = useState(null);
+
+  const [introUploading, setIntroUploading] = useState(false);
+  const introFileInputRef = useRef(null);
 
   // Load universities data
   const loadUniversities = async (page = 1, search = "") => {
@@ -418,6 +440,175 @@ export default function UniversityManagement() {
     setShowModal(true);
   };
 
+  // ====== Introduction (gioi_thieu_truong) handlers ======
+
+  const openIntroductionTab = async (university) => {
+    setIntroUniversity(university);
+    setActiveTab("introduction");
+    await loadIntroduction(university.idtruong);
+  };
+
+  const loadIntroduction = async (idtruong) => {
+    setIntroLoading(true);
+    try {
+      const res = await api.getSchoolIntroduction({ idtruong, per_page: 1 });
+      const list = Array.isArray(res?.data) ? res.data : [];
+      const record = list[0];
+      if (record) {
+        setIntroRecordId(record.idgioi_thieu);
+        setIntroData({
+          ten_tieng_anh: record.ten_tieng_anh || "",
+          ma_truong: record.ma_truong || "",
+          ten_viet_tat: record.ten_viet_tat || "",
+          dia_chi_day_du: record.dia_chi_day_du || "",
+          website: record.website || "",
+          lich_su: record.lich_su || "",
+          su_menh: record.su_menh || "",
+          thanh_tuu: record.thanh_tuu || "",
+          quan_he_quoc_te: record.quan_he_quoc_te || "",
+          tam_nhin: record.tam_nhin || "",
+          anh_dai_dien: record.anh_dai_dien || "",
+        });
+      } else {
+        setIntroRecordId(null);
+        setIntroData({
+          ten_tieng_anh: "",
+          ma_truong: universityCodeFromRow(idtruong),
+          ten_viet_tat: "",
+          dia_chi_day_du: "",
+          website: "",
+          lich_su: "",
+          su_menh: "",
+          thanh_tuu: "",
+          quan_he_quoc_te: "",
+          tam_nhin: "",
+          anh_dai_dien: "",
+        });
+      }
+    } catch (e) {
+      console.error("Failed to load school introduction", e);
+      showToast("Không thể tải thông tin giới thiệu trường", "error");
+    } finally {
+      setIntroLoading(false);
+    }
+  };
+
+  const universityCodeFromRow = (idtruong) => {
+    const uni = universities.find((u) => u.idtruong === idtruong);
+    return uni?.matruong || "";
+  };
+
+  const handleIntroSubmit = async (e) => {
+    e.preventDefault();
+    if (!introUniversity) {
+      showToast("Vui lòng chọn trường đại học", "error");
+      return;
+    }
+    setIntroLoading(true);
+    try {
+      const payload = {
+        idtruong: introUniversity.idtruong,
+        ...introData,
+      };
+      let res;
+      if (introRecordId) {
+        res = await api.updateSchoolIntroduction(introRecordId, payload);
+      } else {
+        res = await api.createSchoolIntroduction(payload);
+      }
+      if (res?.success) {
+        showToast(
+          introRecordId
+            ? "Cập nhật giới thiệu trường thành công"
+            : "Thêm giới thiệu trường thành công",
+          "success"
+        );
+        await loadIntroduction(introUniversity.idtruong);
+      } else {
+        showToast(res?.message || "Không thể lưu giới thiệu trường", "error");
+      }
+    } catch (e) {
+      console.error("Failed to save school introduction", e);
+      showToast(e?.message || "Không thể lưu giới thiệu trường", "error");
+    } finally {
+      setIntroLoading(false);
+    }
+  };
+
+  const handleIntroDelete = async () => {
+    if (!introRecordId) return;
+    if (!window.confirm("Bạn có chắc chắn muốn xóa thông tin giới thiệu trường này?")) return;
+    setIntroLoading(true);
+    try {
+      const res = await api.deleteSchoolIntroduction(introRecordId);
+      if (res?.success) {
+        showToast("Xóa giới thiệu trường thành công", "success");
+        setIntroRecordId(null);
+        setIntroData({
+          ten_tieng_anh: "",
+          ma_truong: introUniversity?.matruong || "",
+          ten_viet_tat: "",
+          dia_chi_day_du: "",
+          website: "",
+          lich_su: "",
+          su_menh: "",
+          thanh_tuu: "",
+          quan_he_quoc_te: "",
+          tam_nhin: "",
+          anh_dai_dien: "",
+        });
+      } else {
+        showToast(res?.message || "Không thể xóa giới thiệu trường", "error");
+      }
+    } catch (e) {
+      console.error("Failed to delete school introduction", e);
+      showToast(e?.message || "Không thể xóa giới thiệu trường", "error");
+    } finally {
+      setIntroLoading(false);
+    }
+  };
+
+  const handleIntroImageFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Chỉ cho phép file ảnh
+    if (!file.type.startsWith("image/")) {
+      showToast("Vui lòng chọn file ảnh (JPEG, PNG, GIF, WebP...)", "error");
+      return;
+    }
+
+    try {
+      setIntroUploading(true);
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("http://localhost:8000/api/chat-support/upload-file", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (data.success && data.data?.url) {
+        setIntroData((prev) => ({
+          ...prev,
+          anh_dai_dien: data.data.url,
+        }));
+        showToast("Upload ảnh thành công", "success");
+      } else {
+        showToast(data.message || "Không thể upload ảnh", "error");
+      }
+    } catch (error) {
+      console.error("Upload intro image error:", error);
+      showToast("Lỗi kết nối khi upload ảnh: " + error.message, "error");
+    } finally {
+      setIntroUploading(false);
+      if (introFileInputRef.current) {
+        introFileInputRef.current.value = "";
+      }
+    }
+  };
+
   // Search handler
   const handleSearch = (e) => {
     e.preventDefault();
@@ -702,6 +893,16 @@ export default function UniversityManagement() {
           >
             Quản lý cơ sở
           </button>
+          <button
+            onClick={() => setActiveTab("introduction")}
+            className={`px-6 py-3 font-medium transition-colors ${
+              activeTab === "introduction"
+                ? "border-b-2 border-teal-600 text-teal-600"
+                : "text-gray-600 hover:text-gray-800"
+            }`}
+          >
+            Giới thiệu trường
+          </button>
         </div>
       </div>
 
@@ -845,20 +1046,24 @@ export default function UniversityManagement() {
                       <div className="flex justify-center gap-2">
                         <button
                           onClick={() => openEditModal(university)}
-                          className="px-3 py-1 text-sm bg-teal-50 text-teal-600 rounded hover:bg-teal-100"
-                          title="Sửa"
+                          className="px-3 py-1 text-xs rounded bg-teal-50 text-teal-700 hover:bg-teal-100"
                         >
-                          ✏️
+                          Sửa
+                        </button>
+                        <button
+                          onClick={() => openIntroductionTab(university)}
+                          className="px-3 py-1 text-xs rounded bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                        >
+                          Giới thiệu
                         </button>
                         <button
                           onClick={() => {
                             setDeleteId(university.idtruong);
                             setShowDeleteModal(true);
                           }}
-                          className="px-3 py-1 text-sm bg-red-50 text-red-600 rounded hover:bg-red-100"
-                          title="Xóa"
+                          className="px-3 py-1 text-xs rounded bg-red-50 text-red-600 hover:bg-red-100"
                         >
-                          🗑️
+                          Xóa
                         </button>
                       </div>
                     </td>
@@ -1499,6 +1704,213 @@ export default function UniversityManagement() {
             </div>
           </Modal>
         </>
+      )}
+
+      {/* Introduction Tab */}
+      {activeTab === "introduction" && (
+        <div className="card p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Giới thiệu trường</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                Chọn một trường ở tab <span className="font-semibold">Quản lý trường đại học</span> và
+                bấm biểu tượng <span className="font-semibold">ℹ️ Giới thiệu</span> để xem/cập nhật nội
+                dung giới thiệu chi tiết (lịch sử, sứ mệnh, tầm nhìn...).
+              </p>
+            </div>
+            {introUniversity && introRecordId && (
+              <button
+                type="button"
+                onClick={handleIntroDelete}
+                className="px-3 py-1 text-xs rounded bg-red-50 text-red-600 hover:bg-red-100"
+              >
+                Xóa giới thiệu
+              </button>
+            )}
+          </div>
+
+          {!introUniversity && (
+            <div className="mt-4 text-sm text-gray-500">
+              Chưa có trường nào được chọn. Hãy quay lại tab{" "}
+              <span className="font-semibold">Quản lý trường đại học</span>, chọn một trường và bấm nút{" "}
+              <span className="font-semibold">Giới thiệu</span>.
+            </div>
+          )}
+
+          {introUniversity && (
+            <form onSubmit={handleIntroSubmit} className="space-y-4">
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm">
+                <div className="font-semibold text-gray-800">
+                  {introUniversity.tentruong} ({introUniversity.matruong})
+                </div>
+                <div className="mt-1 text-gray-600">
+                  ID: {introUniversity.idtruong} • Địa chỉ: {introUniversity.diachi}
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Tên tiếng Anh</label>
+                  <input
+                    className="input w-full"
+                    value={introData.ten_tieng_anh}
+                    onChange={(e) =>
+                      setIntroData({ ...introData, ten_tieng_anh: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Mã trường (giới thiệu)</label>
+                  <input
+                    className="input w-full"
+                    value={introData.ma_truong}
+                    onChange={(e) =>
+                      setIntroData({ ...introData, ma_truong: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Tên viết tắt</label>
+                  <input
+                    className="input w-full"
+                    value={introData.ten_viet_tat}
+                    onChange={(e) =>
+                      setIntroData({ ...introData, ten_viet_tat: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Địa chỉ đầy đủ</label>
+                <textarea
+                  className="input w-full"
+                  rows={2}
+                  value={introData.dia_chi_day_du}
+                  onChange={(e) =>
+                    setIntroData({ ...introData, dia_chi_day_du: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Website</label>
+                  <input
+                    className="input w-full"
+                    value={introData.website}
+                    onChange={(e) =>
+                      setIntroData({ ...introData, website: e.target.value })
+                    }
+                    placeholder="https://..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Ảnh đại diện
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      className="input w-full"
+                      value={introData.anh_dai_dien}
+                      onChange={(e) =>
+                        setIntroData({ ...introData, anh_dai_dien: e.target.value })
+                      }
+                      placeholder="https://example.com/logo.jpg"
+                    />
+                    <label className="btn-outline cursor-pointer text-xs whitespace-nowrap">
+                      {introUploading ? "Đang upload..." : "Chọn ảnh"}
+                      <input
+                        ref={introFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleIntroImageFileSelect}
+                        disabled={introUploading}
+                      />
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Có thể dán URL ảnh Cloudinary trực tiếp hoặc bấm "Chọn ảnh" để upload file, hệ
+                    thống sẽ tự điền URL.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Lịch sử</label>
+                  <textarea
+                    className="input w-full"
+                    rows={4}
+                    value={introData.lich_su}
+                    onChange={(e) =>
+                      setIntroData({ ...introData, lich_su: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Sứ mệnh</label>
+                  <textarea
+                    className="input w-full"
+                    rows={4}
+                    value={introData.su_menh}
+                    onChange={(e) =>
+                      setIntroData({ ...introData, su_menh: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Thành tựu</label>
+                  <textarea
+                    className="input w-full"
+                    rows={4}
+                    value={introData.thanh_tuu}
+                    onChange={(e) =>
+                      setIntroData({ ...introData, thanh_tuu: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Quan hệ quốc tế</label>
+                  <textarea
+                    className="input w-full"
+                    rows={4}
+                    value={introData.quan_he_quoc_te}
+                    onChange={(e) =>
+                      setIntroData({ ...introData, quan_he_quoc_te: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Tầm nhìn</label>
+                <textarea
+                  className="input w-full"
+                  rows={3}
+                  value={introData.tam_nhin}
+                  onChange={(e) =>
+                    setIntroData({ ...introData, tam_nhin: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="submit"
+                  disabled={introLoading}
+                  className="btn-primary"
+                >
+                  {introLoading ? "Đang lưu..." : "Lưu giới thiệu"}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       )}
 
       {/* Toast */}

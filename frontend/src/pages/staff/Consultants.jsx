@@ -12,11 +12,15 @@ function ExpertModal({ open, onClose, expert, onSave, isEdit = false, majorGroup
     address: "",
     birthday: "",
     gender: "",
-    status: "Hoạt động" 
+    status: "Hoạt động",
+    hinhdaidien: "",
+    gioithieu: ""
   });
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
 
   // Cập nhật form khi expert prop thay đổi
   useEffect(() => {
@@ -29,8 +33,11 @@ function ExpertModal({ open, onClose, expert, onSave, isEdit = false, majorGroup
         address: expert.address || "",
         birthday: expert.birthday || "",
         gender: expert.gender || "",
-        status: expert.status || "Hoạt động"
+        status: expert.status || "Hoạt động",
+        hinhdaidien: expert.avatar || expert.hinhdaidien || "",
+        gioithieu: expert.bio || expert.gioithieu || ""
       });
+      setAvatarPreview(expert.avatar || expert.hinhdaidien || null);
     } else {
       setForm({
         name: "",
@@ -40,9 +47,13 @@ function ExpertModal({ open, onClose, expert, onSave, isEdit = false, majorGroup
         address: "",
         birthday: "",
         gender: "",
-        status: "Hoạt động"
+        status: "Hoạt động",
+        hinhdaidien: "",
+        gioithieu: ""
       });
+      setAvatarPreview(null);
     }
+    setAvatarFile(null);
     // Reset errors khi modal mở
     setErrors({});
   }, [expert, open]);
@@ -196,6 +207,35 @@ function ExpertModal({ open, onClose, expert, onSave, isEdit = false, majorGroup
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setErrors(prev => ({ ...prev, avatar: 'File phải là hình ảnh' }));
+        return;
+      }
+      // Validate file size (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors(prev => ({ ...prev, avatar: 'Kích thước file không được quá 5MB' }));
+        return;
+      }
+      setAvatarFile(file);
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.avatar;
+        return newErrors;
+      });
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -207,18 +247,29 @@ function ExpertModal({ open, onClose, expert, onSave, isEdit = false, majorGroup
     
     setIsSubmitting(true);
     try {
-      // Chuẩn hóa dữ liệu trước khi gửi
-      const normalizedForm = {
-        ...form,
-        name: form.name.trim(),
-        email: form.email.trim(),
-        phone: form.phone.trim(),
-        address: form.address?.trim() || "",
-        birthday: form.birthday || null,
-        gender: form.gender || null
-      };
+      // Tạo FormData để gửi file
+      const formData = new FormData();
+      formData.append('name', form.name.trim());
+      formData.append('email', form.email.trim());
+      formData.append('phone', form.phone.trim());
+      // Đảm bảo nganhHoc là số nguyên
+      formData.append('nganhHoc', parseInt(form.nganhHoc));
+      // Luôn gửi status, mặc định là "Hoạt động" nếu không có
+      formData.append('status', form.status || 'Hoạt động');
+      if (form.address) formData.append('address', form.address.trim());
+      if (form.birthday) formData.append('birthday', form.birthday);
+      if (form.gender) formData.append('gender', form.gender);
+      if (form.gioithieu) formData.append('gioithieu', form.gioithieu.trim());
       
-      await onSave(normalizedForm);
+      // Thêm file nếu có
+      if (avatarFile) {
+        formData.append('avatar', avatarFile);
+      } else if (form.hinhdaidien && form.hinhdaidien.trim()) {
+        // Nếu không có file mới nhưng có URL, gửi URL
+        formData.append('hinhdaidien', form.hinhdaidien.trim());
+      }
+      
+      await onSave(formData);
     } catch (error) {
       console.error('Error saving consultant:', error);
     } finally {
@@ -237,8 +288,12 @@ function ExpertModal({ open, onClose, expert, onSave, isEdit = false, majorGroup
         address: "",
         birthday: "",
         gender: "",
-        status: "Hoạt động"
+        status: "Hoạt động",
+        hinhdaidien: "",
+        gioithieu: ""
       });
+      setAvatarFile(null);
+      setAvatarPreview(null);
       setErrors({});
       setIsSubmitting(false);
     }
@@ -319,14 +374,25 @@ function ExpertModal({ open, onClose, expert, onSave, isEdit = false, majorGroup
             onChange={(e) => handleFieldChange('nganhHoc', e.target.value)}
           >
             <option value="">Chọn nhóm ngành</option>
-            {majorGroups.map(group => (
-              <option key={group.id} value={group.id}>
-                {group.name}
-              </option>
-            ))}
+            {majorGroups && majorGroups.length > 0 ? (
+              majorGroups.map((group, index) => {
+                const groupId = group.id || group.idnhomnganh;
+                const groupName = group.name || group.tennhom || `Nhóm ${index + 1}`;
+                return (
+                  <option key={groupId || index} value={groupId}>
+                    {groupName}
+                  </option>
+                );
+              })
+            ) : (
+              <option disabled>Đang tải nhóm ngành...</option>
+            )}
           </select>
           {errors.nganhHoc && (
             <p className="mt-1 text-sm text-red-600">{errors.nganhHoc}</p>
+          )}
+          {majorGroups && majorGroups.length > 0 && (
+            <p className="mt-1 text-xs text-gray-500">Có {majorGroups.length} nhóm ngành</p>
           )}
         </div>
         
@@ -380,16 +446,59 @@ function ExpertModal({ open, onClose, expert, onSave, isEdit = false, majorGroup
           )}
         </div>
         
+        {isEdit && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
+            <select
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              value={form.status}
+              onChange={(e) => handleFieldChange('status', e.target.value)}
+            >
+              <option value="Hoạt động">🟢 Hoạt động</option>
+              <option value="Tạm dừng">⛔ Tạm dừng</option>
+            </select>
+          </div>
+        )}
+        
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
-          <select
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            value={form.status}
-            onChange={(e) => handleFieldChange('status', e.target.value)}
-          >
-            <option value="Hoạt động">🟢 Hoạt động</option>
-            <option value="Tạm dừng">⛔ Tạm dừng</option>
-          </select>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Hình đại diện</label>
+          <input
+            type="file"
+            accept="image/*"
+            className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              errors.avatar ? 'border-red-500' : 'border-gray-300'
+            }`}
+            onChange={handleAvatarChange}
+          />
+          {avatarPreview && (
+            <div className="mt-2">
+              <img 
+                src={avatarPreview} 
+                alt="Preview" 
+                className="w-20 h-20 object-cover rounded-lg border border-gray-300"
+              />
+            </div>
+          )}
+          {errors.avatar && (
+            <p className="mt-1 text-sm text-red-600">{errors.avatar}</p>
+          )}
+          <p className="mt-1 text-xs text-gray-500">Chấp nhận file ảnh, kích thước tối đa 5MB</p>
+        </div>
+        
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Giới thiệu bản thân</label>
+          <textarea
+            rows={4}
+            className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+              errors.gioithieu ? 'border-red-500' : 'border-gray-300'
+            }`}
+            placeholder="Nhập giới thiệu về bản thân..."
+            value={form.gioithieu || ""}
+            onChange={(e) => handleFieldChange('gioithieu', e.target.value)}
+          />
+          {errors.gioithieu && (
+            <p className="mt-1 text-sm text-red-600">{errors.gioithieu}</p>
+          )}
         </div>
         
         <div className="flex justify-end space-x-3 pt-4">
@@ -532,7 +641,7 @@ export default function StaffExperts() {
     try {
       const response = await apiService.getMajorGroups();
       if (response.success) {
-        setMajorGroups(response.data);
+        setMajorGroups(response.data || []);
       }
     } catch (err) {
       console.error('Error loading major groups:', err);
@@ -573,12 +682,47 @@ export default function StaffExperts() {
   const handleSaveExpert = async (formData) => {
     try {
       setLoading(true);
+      
+      // Kiểm tra xem formData có phải là FormData không
+      const isFormData = formData instanceof FormData;
+      
+      let result;
       if (editingExpert) {
         // Sửa tư vấn viên
-        await apiService.updateConsultant(editingExpert.id, formData);
+        if (isFormData) {
+          // Gửi FormData trực tiếp
+          const response = await fetch(`http://127.0.0.1:8000/api/staff/consultants/${editingExpert.id}`, {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: formData
+          });
+          result = await response.json();
+          if (!response.ok || !result.success) {
+            throw { response: { data: result } };
+          }
+        } else {
+          await apiService.updateConsultant(editingExpert.id, formData);
+        }
       } else {
         // Thêm tư vấn viên mới
-        await apiService.createConsultant(formData);
+        if (isFormData) {
+          // Gửi FormData trực tiếp
+          const response = await fetch('http://127.0.0.1:8000/api/staff/consultants', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: formData
+          });
+          result = await response.json();
+          if (!response.ok || !result.success) {
+            throw { response: { data: result } };
+          }
+        } else {
+          await apiService.createConsultant(formData);
+        }
       }
       setShowModal(false);
       setEditingExpert(null);
@@ -592,21 +736,30 @@ export default function StaffExperts() {
       }
     } catch (err) {
       // Xử lý lỗi từ API
+      let apiError = null;
       if (err.response && err.response.data) {
-        const apiError = err.response.data;
-        if (apiError.errors) {
-          // Lỗi validation từ backend
-          const fieldErrors = {};
-          Object.keys(apiError.errors).forEach(field => {
-            if (field === 'email') fieldErrors.email = 'Email đã tồn tại trong hệ thống';
-            else if (field === 'phone') fieldErrors.phone = 'Số điện thoại đã tồn tại trong hệ thống';
-            else fieldErrors[field] = apiError.errors[field][0];
-          });
-          setApiErrors(fieldErrors);
-          return; // Không đóng modal nếu có lỗi validation
+        apiError = err.response.data;
+      } else if (err.message) {
+        try {
+          const errorData = JSON.parse(err.message);
+          apiError = errorData;
+        } catch {
+          // Không phải JSON
         }
       }
-      setError(err.message);
+      
+      if (apiError && apiError.errors) {
+        // Lỗi validation từ backend
+        const fieldErrors = {};
+        Object.keys(apiError.errors).forEach(field => {
+          if (field === 'email') fieldErrors.email = 'Email đã tồn tại trong hệ thống';
+          else if (field === 'phone') fieldErrors.phone = 'Số điện thoại đã tồn tại trong hệ thống';
+          else fieldErrors[field] = apiError.errors[field][0];
+        });
+        setApiErrors(fieldErrors);
+        return; // Không đóng modal nếu có lỗi validation
+      }
+      setError(err.message || 'Có lỗi xảy ra khi lưu tư vấn viên');
       console.error('Error saving consultant:', err);
     } finally {
       setLoading(false);
@@ -650,17 +803,15 @@ export default function StaffExperts() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Quản lý tư vấn viên</h1>
-        <div className="mt-4 sm:mt-0 flex flex-wrap gap-2">
-          <button
-            onClick={handleAddExpert}
-            disabled={loading}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-          >
-            ➕ Thêm mới
-          </button>
-        </div>
+        <button
+          onClick={handleAddExpert}
+          disabled={loading}
+          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+        >
+          ➕ Thêm mới
+        </button>
       </div>
 
       {/* Error Message */}
@@ -681,7 +832,7 @@ export default function StaffExperts() {
       <div className="bg-white rounded-lg border border-gray-200 p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">🔍 Tìm kiếm</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tìm kiếm</label>
             <input
               type="text"
               placeholder="Tìm theo tên hoặc email..."
@@ -692,20 +843,20 @@ export default function StaffExperts() {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">⛔ Lọc trạng thái</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Lọc trạng thái</label>
             <select
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
               <option value="all">Tất cả trạng thái</option>
-              <option value="Hoạt động">🟢 Hoạt động</option>
-              <option value="Tạm dừng">⛔ Tạm dừng</option>
+              <option value="Hoạt động">Hoạt động</option>
+              <option value="Tạm dừng">Tạm dừng</option>
             </select>
           </div>
           
-    <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">📂 Lọc nhóm ngành</label>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Lọc nhóm ngành</label>
             <select
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={nganhFilter}
@@ -713,8 +864,8 @@ export default function StaffExperts() {
             >
               <option value="all">Tất cả nhóm ngành</option>
               {majorGroups.map(group => (
-                <option key={group.id} value={group.id}>
-                  {group.name}
+                <option key={group.id || group.idnhomnganh} value={group.id || group.idnhomnganh}>
+                  {group.name || group.tennhom}
                 </option>
               ))}
             </select>
@@ -735,22 +886,22 @@ export default function StaffExperts() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Họ tên
+                    HỌ TÊN
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
+                    EMAIL
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     SĐT
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Nhóm ngành
+                    NHÓM NGÀNH
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Trạng thái
+                    TRẠNG THÁI
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Hành động
+                    HÀNH ĐỘNG
                   </th>
             </tr>
           </thead>
@@ -798,21 +949,10 @@ export default function StaffExperts() {
                       </button>
                       <button
                         onClick={() => handleEditExpert(expert)}
-                        className="text-green-600 hover:text-green-800"
+                        className="text-blue-600 hover:text-blue-800"
                         title="Sửa"
                       >
                         ✏️
-                      </button>
-                      <button
-                        onClick={() => handleToggleStatus(expert.id)}
-                        className={`${
-                          expert.status === "Hoạt động" 
-                            ? "text-yellow-600 hover:text-yellow-800" 
-                            : "text-green-600 hover:text-green-800"
-                        }`}
-                        title={expert.status === "Hoạt động" ? "Tạm dừng" : "Kích hoạt"}
-                      >
-                        {expert.status === "Hoạt động" ? "⏸️" : "▶️"}
                       </button>
                       <button
                         onClick={() => handleDeleteExpert(expert.id)}

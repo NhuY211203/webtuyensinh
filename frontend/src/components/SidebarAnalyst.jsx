@@ -26,11 +26,17 @@ export default function SidebarAnalyst() {
         <NavLink to="/analyst/admission-majors" className={({isActive})=>`${link} ${isActive?active:""}`}>
           Quản lý ngành tuyển sinh
         </NavLink>
+        <NavLink to="/analyst/admission-projects" className={({isActive})=>`${link} ${isActive?active:""}`}>
+          Quản lý đề án tuyển sinh
+        </NavLink>
         <NavLink to="/analyst/admission-methods" className={({isActive})=>`${link} ${isActive?active:""}`}>
           Quản lý phương thức xét tuyển
         </NavLink>
         <NavLink to="/analyst/analysis" className={({isActive})=>`${link} ${isActive?active:""}`}>
-          Phân tích và Dự báo
+          Phân tích & Dự báo TS
+        </NavLink>
+        <NavLink to="/analyst/analysis-dgnl" className={({isActive})=>`${link} ${isActive?active:""}`}>
+          Phân tích ĐGNL
         </NavLink>
         <NavLink to="/analyst/posts" className={({isActive})=>`${link} ${isActive?active:""}`}>
           Đăng tin

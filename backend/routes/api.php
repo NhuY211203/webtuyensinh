@@ -20,6 +20,9 @@ use App\Http\Controllers\TinTuyenSinhController;
 use App\Http\Controllers\CareerTestController;
 use App\Http\Controllers\KyThiDGNLController;
 use App\Http\Controllers\AdmissionInfoController;
+use App\Http\Controllers\TinhDiemHocBaController;
+use App\Http\Controllers\TinhDiemTotNghiepController;
+use App\Http\Controllers\DeAnTuyenSinhController;
 
 Route::get('/vaitro', [VaiTroController::class, 'index']);
 Route::get('/stats', [StatsController::class, 'index']);
@@ -60,6 +63,48 @@ Route::prefix('kythi-dgnl')->group(function () {
 // Thông tin tuyển sinh & quy chế
 Route::get('/admission-info', [AdmissionInfoController::class, 'index']);
 Route::get('/admission-info/quyche', [AdmissionInfoController::class, 'quyChe']);
+
+// Tính điểm xét tuyển học bạ
+Route::prefix('tinh-diem-hoc-ba')->group(function () {
+    // Danh mục
+    Route::get('/phuong-thuc-xet-hoc-ba', [TinhDiemHocBaController::class, 'getPhuongThucXetHocBa']);
+    Route::get('/doi-tuong-uu-tien', [TinhDiemHocBaController::class, 'getDoiTuongUuTien']);
+    Route::get('/khu-vuc-uu-tien', [TinhDiemHocBaController::class, 'getKhuVucUuTien']);
+    Route::get('/mon-hoc', [TinhDiemHocBaController::class, 'getMonHoc']);
+    Route::get('/quy-dinh-diem-uu-tien', [TinhDiemHocBaController::class, 'getQuyDinhDiemUuTien']);
+    Route::get('/cau-hinh-mon-nhan-he-so', [TinhDiemHocBaController::class, 'getCauHinhMonNhanHeSo']);
+    
+    // Điểm học bạ
+    Route::get('/diem-hoc-ba', [TinhDiemHocBaController::class, 'getDiemHocBa']);
+    Route::post('/diem-hoc-ba', [TinhDiemHocBaController::class, 'saveDiemHocBa']);
+    
+    // Tính điểm
+    Route::post('/tinh-diem', [TinhDiemHocBaController::class, 'tinhDiemHocBa']);
+    Route::get('/ket-qua', [TinhDiemHocBaController::class, 'getKetQuaTinhDiem']);
+});
+
+// Tính điểm tốt nghiệp THPT
+Route::prefix('tinh-diem-tot-nghiep')->group(function () {
+    // Danh mục
+    Route::get('/mon-thi-tot-nghiep', [TinhDiemTotNghiepController::class, 'getMonThiTotNghiep']);
+    Route::get('/mon-hoc', [TinhDiemTotNghiepController::class, 'getMonHoc']);
+    
+    // Điểm thi tốt nghiệp
+    Route::get('/diem-thi-tot-nghiep', [TinhDiemTotNghiepController::class, 'getDiemThiTotNghiep']);
+    Route::post('/diem-thi-tot-nghiep', [TinhDiemTotNghiepController::class, 'saveDiemThiTotNghiep']);
+    
+    // Điểm môn học (lớp 10, 11, 12)
+    Route::get('/diem-mon-hoc', [TinhDiemTotNghiepController::class, 'getDiemMonHocTotNghiep']);
+    Route::post('/diem-mon-hoc', [TinhDiemTotNghiepController::class, 'saveDiemMonHocTotNghiep']);
+    
+    // Điểm khuyến khích
+    Route::get('/diem-khuyen-khich', [TinhDiemTotNghiepController::class, 'getDiemKhuyenKhich']);
+    Route::post('/diem-khuyen-khich', [TinhDiemTotNghiepController::class, 'saveDiemKhuyenKhich']);
+    
+    // Tính điểm
+    Route::post('/tinh-diem', [TinhDiemTotNghiepController::class, 'tinhDiemTotNghiep']);
+    Route::get('/ket-qua', [TinhDiemTotNghiepController::class, 'getKetQuaTinhDiemTotNghiep']);
+});
 
 // Authentication routes
 Route::post('/register', [AuthController::class, 'register']);
@@ -435,6 +480,93 @@ Route::prefix('payments')->group(function () {
     Route::get('/status/{orderId}', [PaymentController::class, 'checkPaymentStatus']);
     Route::post('/zalopay/callback', [PaymentController::class, 'zalopayCallback']);
     Route::get('/history', [PaymentController::class, 'history']);
+});
+
+// ============================================
+// DE AN TUYEN SINH - Tra cứu đề án tuyển sinh
+// ============================================
+
+// Đề án tuyển sinh
+Route::prefix('de-an-tuyen-sinh')->group(function () {
+    Route::get('/', [DeAnTuyenSinhController::class, 'getDeAnTuyenSinh']);
+    Route::get('/{id}', [DeAnTuyenSinhController::class, 'getDeAnTuyenSinhDetail']);
+    Route::post('/', [DeAnTuyenSinhController::class, 'createDeAnTuyenSinh']);
+    Route::put('/{id}', [DeAnTuyenSinhController::class, 'updateDeAnTuyenSinh']);
+    Route::delete('/{id}', [DeAnTuyenSinhController::class, 'deleteDeAnTuyenSinh']);
+});
+
+// Phương thức tuyển sinh chi tiết
+Route::prefix('phuong-thuc-tuyen-sinh')->group(function () {
+    Route::get('/', [DeAnTuyenSinhController::class, 'getPhuongThucChiTiet']);
+    Route::get('/{id}', [DeAnTuyenSinhController::class, 'getPhuongThucChiTietDetail']);
+    Route::post('/', [DeAnTuyenSinhController::class, 'createPhuongThucChiTiet']);
+    Route::put('/{id}', [DeAnTuyenSinhController::class, 'updatePhuongThucChiTiet']);
+    Route::delete('/{id}', [DeAnTuyenSinhController::class, 'deletePhuongThucChiTiet']);
+});
+
+// Bảng quy đổi điểm ngoại ngữ
+Route::prefix('bang-quy-doi-diem-ngoai-ngu')->group(function () {
+    Route::get('/', [DeAnTuyenSinhController::class, 'getBangQuyDoiDiemNgoaiNgu']);
+    Route::post('/', [DeAnTuyenSinhController::class, 'createBangQuyDoiDiemNgoaiNgu']);
+    Route::put('/{id}', [DeAnTuyenSinhController::class, 'updateBangQuyDoiDiemNgoaiNgu']);
+    Route::delete('/{id}', [DeAnTuyenSinhController::class, 'deleteBangQuyDoiDiemNgoaiNgu']);
+});
+
+// Ngành theo phương thức
+Route::prefix('nganh-theo-phuong-thuc')->group(function () {
+    Route::get('/', [DeAnTuyenSinhController::class, 'getNganhTheoPhuongThuc']);
+    Route::post('/', [DeAnTuyenSinhController::class, 'createNganhTheoPhuongThuc']);
+    Route::put('/{id}', [DeAnTuyenSinhController::class, 'updateNganhTheoPhuongThuc']);
+    Route::delete('/{id}', [DeAnTuyenSinhController::class, 'deleteNganhTheoPhuongThuc']);
+});
+
+// Xét tuyển thẳng
+Route::prefix('xet-tuyen-thang')->group(function () {
+    Route::get('/', [DeAnTuyenSinhController::class, 'getXetTuyenThang']);
+    Route::post('/', [DeAnTuyenSinhController::class, 'createXetTuyenThang']);
+    Route::put('/{id}', [DeAnTuyenSinhController::class, 'updateXetTuyenThang']);
+    Route::delete('/{id}', [DeAnTuyenSinhController::class, 'deleteXetTuyenThang']);
+});
+
+// Hồ sơ xét tuyển
+Route::prefix('ho-so-xet-tuyen')->group(function () {
+    Route::get('/', [DeAnTuyenSinhController::class, 'getHoSoXetTuyen']);
+    Route::post('/', [DeAnTuyenSinhController::class, 'createHoSoXetTuyen']);
+    Route::put('/{id}', [DeAnTuyenSinhController::class, 'updateHoSoXetTuyen']);
+    Route::delete('/{id}', [DeAnTuyenSinhController::class, 'deleteHoSoXetTuyen']);
+});
+
+// Quy định điểm ưu tiên đề án
+Route::prefix('quy-dinh-diem-uu-tien-de-an')->group(function () {
+    Route::get('/', [DeAnTuyenSinhController::class, 'getQuyDinhDiemUuTienDeAn']);
+    Route::post('/', [DeAnTuyenSinhController::class, 'createQuyDinhDiemUuTienDeAn']);
+    Route::put('/{id}', [DeAnTuyenSinhController::class, 'updateQuyDinhDiemUuTienDeAn']);
+    Route::delete('/{id}', [DeAnTuyenSinhController::class, 'deleteQuyDinhDiemUuTienDeAn']);
+});
+
+// Thông tin bổ sung phương thức
+Route::prefix('thong-tin-bo-sung-phuong-thuc')->group(function () {
+    Route::get('/', [DeAnTuyenSinhController::class, 'getThongTinBoSungPhuongThuc']);
+    Route::post('/', [DeAnTuyenSinhController::class, 'createThongTinBoSungPhuongThuc']);
+    Route::put('/{id}', [DeAnTuyenSinhController::class, 'updateThongTinBoSungPhuongThuc']);
+    Route::delete('/{id}', [DeAnTuyenSinhController::class, 'deleteThongTinBoSungPhuongThuc']);
+});
+
+// File đề án tuyển sinh
+Route::prefix('file-de-an-tuyen-sinh')->group(function () {
+    Route::get('/', [DeAnTuyenSinhController::class, 'getFileDeAnTuyenSinh']);
+    Route::post('/', [DeAnTuyenSinhController::class, 'createFileDeAnTuyenSinh']);
+    Route::put('/{id}', [DeAnTuyenSinhController::class, 'updateFileDeAnTuyenSinh']);
+    Route::delete('/{id}', [DeAnTuyenSinhController::class, 'deleteFileDeAnTuyenSinh']);
+});
+
+// Giới thiệu trường
+Route::prefix('gioi-thieu-truong')->group(function () {
+    Route::get('/', [DeAnTuyenSinhController::class, 'getGioiThieuTruong']);
+    Route::get('/{id}', [DeAnTuyenSinhController::class, 'getGioiThieuTruongDetail']);
+    Route::post('/', [DeAnTuyenSinhController::class, 'createGioiThieuTruong']);
+    Route::put('/{id}', [DeAnTuyenSinhController::class, 'updateGioiThieuTruong']);
+    Route::delete('/{id}', [DeAnTuyenSinhController::class, 'deleteGioiThieuTruong']);
 });
 
 
