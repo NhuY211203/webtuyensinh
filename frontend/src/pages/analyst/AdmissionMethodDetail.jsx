@@ -20,7 +20,7 @@ const TABS = [
 ];
 
 export default function AdmissionMethodDetail() {
-  const { methodId } = useParams();
+  const { methodId, id: projectId } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -69,7 +69,9 @@ export default function AdmissionMethodDetail() {
   };
 
   const goBackToMethods = () => {
-    if (project) {
+    if (projectId) {
+      navigate(`/analyst/admission-projects/${projectId}/methods`);
+    } else if (project) {
       navigate(`/analyst/admission-projects/${project.idde_an || project.id}/methods`);
     } else {
       navigate("/analyst/admission-projects");

@@ -17,6 +17,11 @@ class KyThiDGNLOption extends Model
         'thu_tu',
         'loi_giai',
     ];
+
+    protected $casts = [
+        'is_correct' => 'boolean',
+        'thu_tu' => 'integer',
+    ];
 }
 
 

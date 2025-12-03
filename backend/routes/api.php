@@ -60,6 +60,42 @@ Route::prefix('kythi-dgnl')->group(function () {
     Route::get('/topics', [KyThiDGNLController::class, 'topics']);
 });
 
+// Admin quản lý ĐGNL
+use App\Http\Controllers\AdminDGNLController;
+use App\Http\Controllers\AdminDGNLSectionController;
+use App\Http\Controllers\AdminDGNLQuestionController;
+
+Route::prefix('admin/dgnl-exams')->group(function () {
+    Route::get('/', [AdminDGNLController::class, 'index']);
+    Route::post('/', [AdminDGNLController::class, 'store']);
+    Route::get('/template', [AdminDGNLController::class, 'exportTemplate']);
+    Route::get('/{id}', [AdminDGNLController::class, 'show']);
+    Route::put('/{id}', [AdminDGNLController::class, 'update']);
+    Route::delete('/{id}', [AdminDGNLController::class, 'destroy']);
+    Route::post('/{id}/duplicate', [AdminDGNLController::class, 'duplicate']);
+    Route::get('/{id}/statistics', [AdminDGNLController::class, 'statistics']);
+    Route::post('/{id}/import', [AdminDGNLController::class, 'import']);
+    Route::get('/{id}/export', [AdminDGNLController::class, 'export']);
+    
+    // Sections
+    Route::get('/{idkythi}/sections', [AdminDGNLSectionController::class, 'index']);
+    Route::post('/{idkythi}/sections', [AdminDGNLSectionController::class, 'store']);
+    Route::put('/sections/{id}', [AdminDGNLSectionController::class, 'update']);
+    Route::delete('/sections/{id}', [AdminDGNLSectionController::class, 'destroy']);
+    
+    // Questions
+    Route::get('/{idkythi}/questions', [AdminDGNLQuestionController::class, 'index']);
+    Route::post('/{idkythi}/questions', [AdminDGNLQuestionController::class, 'store']);
+    Route::get('/questions/{id}', [AdminDGNLQuestionController::class, 'show']);
+    // New split update methods
+    Route::put('/questions/{id}/basic', [AdminDGNLQuestionController::class, 'updateBasic']);
+    Route::put('/questions/{id}/options', [AdminDGNLQuestionController::class, 'updateOptions']);
+    // Remove old monolithic update route
+    // Route::put('/questions/{id}', [AdminDGNLQuestionController::class, 'update']);
+    Route::delete('/questions/{id}', [AdminDGNLQuestionController::class, 'destroy']);
+    Route::post('/questions/{id}/duplicate', [AdminDGNLQuestionController::class, 'duplicate']);
+});
+
 // Thông tin tuyển sinh & quy chế
 Route::get('/admission-info', [AdmissionInfoController::class, 'index']);
 Route::get('/admission-info/quyche', [AdmissionInfoController::class, 'quyChe']);

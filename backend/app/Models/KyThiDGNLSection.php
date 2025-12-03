@@ -20,6 +20,16 @@ class KyThiDGNLSection extends Model
         'thu_tu',
         'mo_ta',
     ];
+
+    public function exam()
+    {
+        return $this->belongsTo(KyThiDGNL::class, 'idkythi', 'idkythi');
+    }
+
+    public function questions()
+    {
+        return $this->hasMany(KyThiDGNLQuestion::class, 'idsection', 'idsection');
+    }
 }
 
 

@@ -32,6 +32,9 @@ export default function SidebarAnalyst() {
         <NavLink to="/analyst/admission-methods" className={({isActive})=>`${link} ${isActive?active:""}`}>
           Quản lý phương thức xét tuyển
         </NavLink>
+        <NavLink to="/analyst/dgnl-exams" className={({isActive})=>`${link} ${isActive?active:""}`}>
+          Quản lý bài thi ĐGNL
+        </NavLink>
         <NavLink to="/analyst/analysis" className={({isActive})=>`${link} ${isActive?active:""}`}>
           Phân tích & Dự báo TS
         </NavLink>

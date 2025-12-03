@@ -18,6 +18,16 @@ class KyThiDGNLQuestion extends Model
         'do_kho',
         'diem_mac_dinh',
     ];
+
+    public function section()
+    {
+        return $this->belongsTo(KyThiDGNLSection::class, 'idsection', 'idsection');
+    }
+
+    public function options()
+    {
+        return $this->hasMany(KyThiDGNLOption::class, 'idquestion', 'idquestion');
+    }
 }
 
 

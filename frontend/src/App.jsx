@@ -37,7 +37,6 @@ import CalculateTranscriptScore from "./pages/dashboard/CalculateTranscriptScore
 import CalculateGraduationScore from "./pages/dashboard/CalculateGraduationScore.jsx";
 
 import ConsultantLayout from "./layouts/ConsultantLayout.jsx";
-import ConsultantOverview from "./pages/consultant/Overview.jsx";
 import ConsultantSchedule from "./pages/consultant/Schedule.jsx";
 import ConsultantMeetings from "./pages/consultant/Meetings.jsx";
 import ConsultantNotes from "./pages/consultant/Notes.jsx";
@@ -76,6 +75,8 @@ import AdmissionProjectMethods from "./pages/analyst/AdmissionProjectMethods.jsx
 import AdmissionMethodDetail from "./pages/analyst/AdmissionMethodDetail.jsx";
 import Analysis from "./pages/analyst/Analysis.jsx";
 import DGNLAnalysis from "./pages/analyst/DGNLAnalysis.jsx";
+import DGNLExamManagement from "./pages/analyst/DGNLExamManagement.jsx";
+import DGNLExamDetailAdmin from "./pages/analyst/DGNLExamDetail.jsx";
 
 export default function App() {
   const location = useLocation();
@@ -134,7 +135,7 @@ export default function App() {
               <ConsultantLayout />
             </ProtectedRoute>
           }>
-            <Route index element={<ConsultantOverview />} />
+            <Route index element={<ConsultantMeetings />} />
             <Route path="schedule" element={<ConsultantSchedule />} />
             <Route path="meetings" element={<ConsultantMeetings />} />
             <Route path="notes" element={<ConsultantNotes />} />
@@ -190,7 +191,9 @@ export default function App() {
           <Route path="admission-projects" element={<AdmissionProjectManagement />} />
           <Route path="admission-methods" element={<AdmissionMethodManagement />} />
           <Route path="admission-projects/:id/methods" element={<AdmissionProjectMethods />} />
-          <Route path="admission-methods/:methodId" element={<AdmissionMethodDetail />} />
+          <Route path="admission-projects/:id/methods/:methodId" element={<AdmissionMethodDetail />} />
+          <Route path="dgnl-exams" element={<DGNLExamManagement />} />
+          <Route path="dgnl-exams/:id" element={<DGNLExamDetailAdmin />} />
           <Route path="analysis" element={<Analysis />} />
           <Route path="analysis-dgnl" element={<DGNLAnalysis />} />
         </Route>

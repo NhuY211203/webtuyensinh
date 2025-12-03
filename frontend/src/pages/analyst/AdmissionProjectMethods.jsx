@@ -297,7 +297,7 @@ export default function AdmissionProjectMethods() {
                     <td className="px-3 py-2 text-center">
                       <div className="flex justify-center gap-2">
                         <Link
-                          to={`/analyst/admission-methods/${m.idphuong_thuc_chi_tiet}`}
+                          to={`/analyst/admission-projects/${projectId}/methods/${m.idphuong_thuc_chi_tiet}`}
                           className="px-3 py-1 text-xs rounded bg-blue-50 text-blue-700 hover:bg-blue-100"
                         >
                           Chi tiết

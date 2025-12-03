@@ -648,6 +648,130 @@ class ApiService {
   async getKetQuaTinhDiemTotNghiep(params = {}) {
     return this.get('/tinh-diem-tot-nghiep/ket-qua', params);
   }
+  // DGNL Exam Management
+  async getDGNLExams(params = {}) {
+    return this.get('/admin/dgnl-exams', params);
+  }
+
+  async getDGNLExamDetail(id) {
+    return this.get(`/admin/dgnl-exams/${id}`);
+  }
+
+  async createDGNLExam(data) {
+    return this.post('/admin/dgnl-exams', data);
+  }
+
+  async updateDGNLExam(id, data) {
+    return this.put(`/admin/dgnl-exams/${id}`, data);
+  }
+
+  async deleteDGNLExam(id) {
+    return this.delete(`/admin/dgnl-exams/${id}`);
+  }
+
+  async duplicateDGNLExam(id) {
+    return this.post(`/admin/dgnl-exams/${id}/duplicate`);
+  }
+
+  async getDGNLExamStatistics(id) {
+    return this.get(`/admin/dgnl-exams/${id}/statistics`);
+  }
+
+  async importDGNLExam(id, file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('idkythi', id);
+    return this.request(`/admin/dgnl-exams/${id}/import`, {
+      method: 'POST',
+      body: formData,
+      headers: {}, // Let browser set Content-Type with boundary
+    });
+  }
+
+  async exportDGNLExam(id) {
+    const token = localStorage.getItem('token');
+    const url = `${this.baseURL}/admin/dgnl-exams/${id}/export`;
+    const response = await fetch(url, {
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+    });
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `DGNL_Export_${id}_${Date.now()}.xlsx`;
+    link.click();
+    window.URL.revokeObjectURL(downloadUrl);
+  }
+
+  async downloadDGNLTemplate() {
+    const token = localStorage.getItem('token');
+    const url = `${this.baseURL}/admin/dgnl-exams/template`;
+    const response = await fetch(url, {
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+    });
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `DGNL_Import_Template_${Date.now()}.xlsx`;
+    link.click();
+    window.URL.revokeObjectURL(downloadUrl);
+  }
+
+  // DGNL Sections
+  async getDGNLSections(idkythi) {
+    return this.get(`/admin/dgnl-exams/${idkythi}/sections`);
+  }
+
+  async createDGNLSection(idkythi, data) {
+    return this.post(`/admin/dgnl-exams/${idkythi}/sections`, data);
+  }
+
+  async updateDGNLSection(id, data) {
+    return this.put(`/admin/dgnl-exams/sections/${id}`, data);
+  }
+
+  async deleteDGNLSection(id) {
+    return this.delete(`/admin/dgnl-exams/sections/${id}`);
+  }
+
+  // DGNL Questions
+  async getDGNLQuestions(idkythi, params = {}) {
+    return this.get(`/admin/dgnl-exams/${idkythi}/questions`, params);
+  }
+
+  async getDGNLQuestionDetail(id) {
+    return this.get(`/admin/dgnl-exams/questions/${id}`);
+  }
+
+  async createDGNLQuestion(idkythi, data) {
+    return this.post(`/admin/dgnl-exams/${idkythi}/questions`, data);
+  }
+
+  // New split update endpoints
+  async updateDGNLQuestionBasic(id, data) {
+    return this.put(`/admin/dgnl-exams/questions/${id}/basic`, data);
+  }
+  async updateDGNLQuestionOptions(id, options) {
+    return this.put(`/admin/dgnl-exams/questions/${id}/options`, { options });
+  }
+
+  // Old monolithic update (no longer used)
+  async updateDGNLQuestion(id, data) {
+    return this.put(`/admin/dgnl-exams/questions/${id}`, data);
+  }
+
+  async deleteDGNLQuestion(id) {
+    return this.delete(`/admin/dgnl-exams/questions/${id}`);
+  }
+
+  async duplicateDGNLQuestion(id) {
+    return this.post(`/admin/dgnl-exams/questions/${id}/duplicate`);
+  }
 }
 
 export default new ApiService();
