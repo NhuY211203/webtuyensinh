@@ -739,6 +739,135 @@ class CatalogController extends Controller
         if ($prob >= 0.40) return 'Cân nhắc';
         return 'Khó';
     }
+
+    // ---------------- Trend Analysis API ----------------
+    /**
+     * Get score trends for a specific school and major across multiple years
+     */
+    public function xuHuongDiemChuan(Request $request): JsonResponse
+    {
+        try {
+            $idtruong = $request->integer('idtruong');
+            $manganh = $request->string('manganh');
+            $tuNam = $request->integer('tu_nam', 2020);
+            $denNam = $request->integer('den_nam', 2024);
+            $idxettuyen = $request->integer('idxettuyen');
+            $tohop = $request->string('tohop');
+
+            // Build query from the trend view
+            $q = DB::table('v_diemchuan_xuhuong')
+                ->whereBetween('namxettuyen', [$tuNam, $denNam])
+                ->orderBy('tentruong')
+                ->orderBy('tennganh')
+                ->orderBy('namxettuyen');
+
+            // Apply filters
+            if ($idtruong) {
+                $q->where('idtruong', $idtruong);
+            }
+            if ($manganh) {
+                $q->where('manganh', $manganh);
+            }
+            if ($idxettuyen) {
+                $q->where('idxettuyen', $idxettuyen);
+            }
+            if ($tohop) {
+                $q->where('tohopmon', 'like', '%' . $tohop . '%');
+            }
+
+            $trends = $q->get();
+
+            // Group by school and major for better organization
+            $grouped = [];
+            foreach ($trends as $trend) {
+                $key = $trend->idtruong . '_' . $trend->manganh;
+                if (!isset($grouped[$key])) {
+                    $grouped[$key] = [
+                        'idtruong' => $trend->idtruong,
+                        'tentruong' => $trend->tentruong,
+                        'manganh' => $trend->manganh,
+                        'tennganh' => $trend->tennganh,
+                        'data' => []
+                    ];
+                }
+                $grouped[$key]['data'][] = [
+                    'namxettuyen' => $trend->namxettuyen,
+                    'diemchuan' => (float) $trend->diemchuan,
+                    'tohopmon' => $trend->tohopmon,
+                    'diem_nam_truoc' => $trend->diem_nam_truoc ? (float) $trend->diem_nam_truoc : null,
+                    'bien_dong' => $trend->bien_dong ? (float) $trend->bien_dong : null,
+                    'xu_huong' => $trend->xu_huong
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => array_values($grouped),
+                'summary' => [
+                    'total_records' => count($trends),
+                    'schools_count' => count(array_unique(array_column($trends->toArray(), 'idtruong'))),
+                    'majors_count' => count(array_unique(array_column($trends->toArray(), 'manganh'))),
+                    'year_range' => [$tuNam, $denNam]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi lấy xu hướng điểm chuẩn: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get trend statistics overview
+     */
+    public function thongKeXuHuong(Request $request): JsonResponse
+    {
+        try {
+            $nam = $request->integer('nam', 2024);
+
+            // Get trend statistics for the specified year
+            $stats = DB::table('v_diemchuan_xuhuong')
+                ->select('xu_huong', DB::raw('COUNT(*) as so_luong'), DB::raw('ROUND(AVG(bien_dong), 2) as bien_dong_tb'))
+                ->where('namxettuyen', $nam)
+                ->whereNotNull('bien_dong')
+                ->groupBy('xu_huong')
+                ->orderByDesc('so_luong')
+                ->get();
+
+            // Get top majors with strongest trends
+            $tangManh = DB::table('v_diemchuan_xuhuong')
+                ->where('namxettuyen', $nam)
+                ->where('xu_huong', 'Tăng mạnh')
+                ->orderByDesc('bien_dong')
+                ->limit(5)
+                ->get(['tentruong', 'tennganh', 'bien_dong']);
+
+            $giamManh = DB::table('v_diemchuan_xuhuong')
+                ->where('namxettuyen', $nam)
+                ->where('xu_huong', 'Giảm mạnh')
+                ->orderBy('bien_dong')
+                ->limit(5)
+                ->get(['tentruong', 'tennganh', 'bien_dong']);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'nam' => $nam,
+                    'tong_quan' => $stats,
+                    'tang_manh_nhat' => $tangManh,
+                    'giam_manh_nhat' => $giamManh
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi khi lấy thống kê xu hướng: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
 
 

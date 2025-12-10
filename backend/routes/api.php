@@ -24,20 +24,23 @@ use App\Http\Controllers\TinhDiemHocBaController;
 use App\Http\Controllers\TinhDiemTotNghiepController;
 use App\Http\Controllers\DeAnTuyenSinhController;
 
-Route::get('/vaitro', [VaiTroController::class, 'index']);
-Route::get('/stats', [StatsController::class, 'index']);
-Route::get('/truongdaihoc', [CatalogController::class, 'truong']);
-Route::get('/nganhhoc', [CatalogController::class, 'nganh']);
-Route::get('/majors-all', [CatalogController::class, 'majorsAll']);
-Route::get('/majors', [CatalogController::class, 'majors']);
-Route::get('/nhomnganh', [CatalogController::class, 'nhomNganh']);
-Route::get('/tohop-xettuyen', [CatalogController::class, 'tohop']);
-Route::get('/majors-by-combo', [CatalogController::class, 'majorsByCombo']);
-Route::get('/phuong-thuc', [CatalogController::class, 'phuongthuc']);
-Route::get('/years', [CatalogController::class, 'years']);
-Route::get('/diemchuan', [CatalogController::class, 'diemchuan']);
+// Cache 5 phút (300s) cho các API ít thay đổi
+Route::get('/vaitro', [VaiTroController::class, 'index'])->middleware('cache.response:300');
+Route::get('/stats', [StatsController::class, 'index'])->middleware('cache.response:60');
+Route::get('/truongdaihoc', [CatalogController::class, 'truong'])->middleware('cache.response:600');
+Route::get('/nganhhoc', [CatalogController::class, 'nganh'])->middleware('cache.response:600');
+Route::get('/majors-all', [CatalogController::class, 'majorsAll'])->middleware('cache.response:600');
+Route::get('/majors', [CatalogController::class, 'majors'])->middleware('cache.response:600');
+Route::get('/nhomnganh', [CatalogController::class, 'nhomNganh'])->middleware('cache.response:600');
+Route::get('/tohop-xettuyen', [CatalogController::class, 'tohop'])->middleware('cache.response:600');
+Route::get('/majors-by-combo', [CatalogController::class, 'majorsByCombo'])->middleware('cache.response:300');
+Route::get('/phuong-thuc', [CatalogController::class, 'phuongthuc'])->middleware('cache.response:600');
+Route::get('/years', [CatalogController::class, 'years'])->middleware('cache.response:600');
+Route::get('/diemchuan', [CatalogController::class, 'diemchuan'])->middleware('cache.response:180');
 // Put export route BEFORE dynamic {id} to avoid route collision
 Route::get('/diemchuan/export', [CatalogController::class, 'exportDiemchuan']);
+Route::get('/diemchuan/xuhuong', [CatalogController::class, 'xuHuongDiemChuan'])->middleware('cache.response:300');
+Route::get('/diemchuan/thongke-xuhuong', [CatalogController::class, 'thongKeXuHuong'])->middleware('cache.response:300');
 Route::get('/diemchuan/{id}', [CatalogController::class, 'diemchuanDetail']);
 Route::post('/diemchuan', [CatalogController::class, 'storeDiemchuan']);
 Route::post('/diemchuan/import', [CatalogController::class, 'importDiemchuan']);
@@ -117,6 +120,9 @@ Route::prefix('tinh-diem-hoc-ba')->group(function () {
     // Tính điểm
     Route::post('/tinh-diem', [TinhDiemHocBaController::class, 'tinhDiemHocBa']);
     Route::get('/ket-qua', [TinhDiemHocBaController::class, 'getKetQuaTinhDiem']);
+    
+    // Gợi ý ngành học và trường
+    Route::post('/goi-y-nganh-truong', [TinhDiemHocBaController::class, 'goiYNganhTruong']);
 });
 
 // Tính điểm tốt nghiệp THPT
