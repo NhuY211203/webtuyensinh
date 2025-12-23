@@ -522,6 +522,17 @@ Route::prefix('payments')->group(function () {
     Route::get('/status/{orderId}', [PaymentController::class, 'checkPaymentStatus']);
     Route::post('/zalopay/callback', [PaymentController::class, 'zalopayCallback']);
     Route::get('/history', [PaymentController::class, 'history']);
+    
+    // Test routes
+    Route::post('/test-zalopay-qr', [App\Http\Controllers\TestPaymentController::class, 'testZaloPayQR']);
+    Route::get('/debug/config', [App\Http\Controllers\DebugController::class, 'checkZaloPayConfig']);
+    Route::post('/debug/simple-qr', [App\Http\Controllers\DebugController::class, 'generateSimpleQR']);
+    Route::post('/debug/test-callback/{orderId}', [App\Http\Controllers\DebugController::class, 'testCallback']);
+    
+    // Simple ZaloPay routes (không cần database)
+    Route::post('/simple/generate-qr', [App\Http\Controllers\SimplePaymentController::class, 'generateZaloPayQR']);
+    Route::post('/simple/zalopay-callback', [App\Http\Controllers\SimplePaymentController::class, 'zalopayCallback']);
+    Route::get('/simple/status/{orderId}', [App\Http\Controllers\SimplePaymentController::class, 'checkPaymentStatus']);
 });
 
 // ============================================

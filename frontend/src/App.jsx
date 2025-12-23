@@ -25,6 +25,7 @@ import Predictions from "./pages/dashboard/Predictions.jsx";
 import SearchQuick from "./pages/dashboard/SearchQuick.jsx";
 import Payments from "./pages/dashboard/Payments.jsx";
 import Appointments from "./pages/dashboard/Appointments.jsx";
+import TestPayment from "./pages/TestPayment.jsx";
 import Certificates from "./pages/dashboard/Certificates.jsx";
 import AdmissionInfo from "./pages/dashboard/AdmissionInfo.jsx";
 import AdmissionProjects from "./pages/dashboard/AdmissionProjects.jsx";
@@ -116,6 +117,7 @@ export default function App() {
             <Route path="payment-history" element={<Payments />} />
             <Route path="predictions" element={<Predictions />} />
             <Route path="appointments" element={<Appointments />} />
+            <Route path="test-payment" element={<TestPayment />} />
             <Route path="certificates" element={<Certificates />} />
             <Route path="admission-info" element={<AdmissionInfo />} />
             <Route path="admission-projects" element={<AdmissionProjects />} />

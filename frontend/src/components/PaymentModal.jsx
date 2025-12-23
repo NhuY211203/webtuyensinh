@@ -52,12 +52,9 @@ const PaymentModal = ({ isOpen, onClose, bookingData }) => {
   // Tạo QR code ZaloPay
   const generateZaloPayQR = async (invoiceId, scheduleId, userId, pointsUsed = 0) => {
     try {
-      const response = await apiService.post('/payments/generate-zalopay-qr', {
-        invoiceId: invoiceId,
-        scheduleId: scheduleId,
-        userId: userId,
-        pointsUsed: pointsUsed,
-        discountAmount: pointsUsed * 1000 // Tổng số tiền giảm
+      const response = await apiService.post('/payments/simple/generate-qr', {
+        amount: total,
+        description: `Thanh toán tư vấn - ${bookingData.consultant?.name} - ${bookingData.slot?.date} ${bookingData.slot?.time}`
       });
       
       console.log('ZaloPay Response:', response);
@@ -100,9 +97,10 @@ const PaymentModal = ({ isOpen, onClose, bookingData }) => {
   // Kiểm tra trạng thái thanh toán
   const checkPaymentStatus = async (orderId) => {
     try {
-      const response = await apiService.get(`/payments/status/${orderId}`);
-      if (response.success && response.data) {
-        return response.data.status;
+      const response = await fetch(`http://localhost:8000/api/payments/simple/status/${orderId}`);
+      const data = await response.json();
+      if (data.success && data.data) {
+        return data.data.status;
       }
       return 'pending';
     } catch (error) {

@@ -143,7 +143,11 @@ class PaymentController extends Controller
             ]);
             
             // Gửi request với Content-Type: application/x-www-form-urlencoded
-            $response = Http::asForm()->post($endpoint, $requestData);
+            // Bỏ qua SSL verification cho môi trường development
+            $response = Http::withOptions([
+                'verify' => false, // Bỏ qua SSL certificate verification
+                'timeout' => 30,   // Timeout 30 giây
+            ])->asForm()->post($endpoint, $requestData);
             
             $result = null;
             $return_code = null;
